@@ -29,7 +29,7 @@
     </description>
 
 	<!-- the program version -->
-	<property name="pad.version" value="0.1"/>
+	<property name="pad.version" value="0.2"/>
 	
 	<!-- the java version. Currently only 1.4 is supported -->
 	<property name="pad.javaversion" value="1.4"/>
@@ -82,8 +82,30 @@
          ================================= -->
     <target name="javadoc" depends="compile">
     	<delete dir="${doc}"/>
-    	<ant antfile="javadoc.xml" dir="${basedir}" inheritall="false"></ant>
-    </target>
-
+        <javadoc access="private" 
+            	author="true" 
+            	destdir="${doc}" 
+            	nodeprecated="false" 
+            	nodeprecatedlist="false" 
+            	noindex="false" 
+            	nonavbar="false" 
+            	notree="false" 
+            	packagenames="de.kruis.padoclet" 
+            	source="${pad.javaversion}" 
+            	sourcepath="${src}" 
+            	splitindex="false" 
+            	use="true" 
+            	version="true" 
+            	verbose="true"
+            	>
+				<packageset dir="${src}">
+					<include name="**/*"/>
+				</packageset>
+            	<doclet name="de.kruis.padoclet.PublishedApiDoclet" path="bin">
+            		<param name="-padFilterDefault" value="src"/>
+            		<param name="-padDefaultIsExclude"/>
+            	</doclet>
+            	</javadoc>
+        </target>
 </project>
 

@@ -27,20 +27,10 @@
 
 package de.kruis.padoclet;
 
-import java.beans.Introspector;
-import java.beans.PropertyDescriptor;
 import java.lang.reflect.Array;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -48,7 +38,6 @@ import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.ConstructorDoc;
 import com.sun.javadoc.Doc;
 import com.sun.javadoc.DocErrorReporter;
-import com.sun.javadoc.Doclet;
 import com.sun.javadoc.FieldDoc;
 import com.sun.javadoc.MethodDoc;
 import com.sun.javadoc.PackageDoc;
@@ -58,69 +47,69 @@ import com.sun.javadoc.Tag;
 import com.sun.javadoc.Type;
 import com.sun.tools.javadoc.Main;
 
-import de.kruis.padoclet.HalfDynamicProxy.MessageReciver;
-
 /**
- * This class is a java 1.4 doclet. 
+ * This class is a java 1.4 doclet, that is used to define the documented API.
  * 
- * 
+ * The class is an concrete application of the {@link de.kruis.padoclet.FilterDocletBase} class.
  * 
  * @author kruis
- *
  */
-public class PublishedApiDoclet implements MessageReciver {
+public class PublishedApiDoclet extends FilterDocletBase {
     
     /**
-     * The name of the systrem property, that contains the name of the
-     * delegate doclet. If this system property is unset, the default 
-     * doclet (<code>com.sun.tools.doclets.standard.Standard</code>) is used.
+     * the name of the <i>exclude</i> tag. Default is <code>pad.exclude</code>.
      */
-    public static final String PAD_DELEGATE_DOCLET_SYSTEM_PROPERTY = "PublishedApiDoclet.delegate";
-    
-    
-    /**
-     * This class is used to perform a lazy instantiation of the
-     * delegate doclet class.
-     * 
-     * @author kruis
-     * @pad.exclude 
-     */
-    private static class DH {
-		/**
-         * holds the delegat doclet
-         */
-        public static final Class delegateDoclet;
-        static {
-            String classname = System.getProperty(PAD_DELEGATE_DOCLET_SYSTEM_PROPERTY,"com.sun.tools.doclets.standard.Standard");
-            Class clazz = null;
-            try {
-                clazz = Thread.currentThread().getContextClassLoader().loadClass(classname);
-            } catch (Exception e) {
-                e.printStackTrace();
-            } 
-            delegateDoclet = clazz;
-        }
-    }
-
-    
-    /**
-     * holds the name of the include tag
-     * 
-     */
-    private DocErrorReporter errorReporter;
     private String excludeTag;
+    /**
+     * the exclude filter regular expression.
+     */
     private Pattern excludeFilter;
+    /**
+     * the name of the <i>include</i> tag. Default is <code>pad.include</code>.
+     */
     private String includeTag;
+    /**
+     * the include filter regular expression.
+     */
     private Pattern includeFilter;
+    /**
+     * the name of the <i>forceInclude</i> tag. Default is <code>pad.forceInclude</code>.
+     */
     private String forceIncludeTag;
+    /**
+     * the forceInclude filter regular expression.
+     */
     private Pattern forceIncludeFilter;
+    /**
+     * the name of the <i>excludeChilds</i> tag. Default is <code>pad.excludeChilds</code>.
+     */
     private String excludeChildsTag;
+    /**
+     * the excludeChilds filter regular expression.
+     */
     private Pattern excludeChildsFilter;
+    /**
+     * the default mode. If <code>true</code>, everything is excluded by default. 
+     * Default is <code>false</code> / include. 
+     */
     private boolean defaultIsExclude;
+    /**
+     * the priority of the default setting. A positive value. Default is 1.
+     */
     private int defaultPriority;
+    /**
+     * If <code>true</code>, retrieve all items from the javadoc core. Otherwise 
+     * retrieve only the included subset.
+     */
     private boolean disableJavadocFilter;
+    /**
+     * If <code>true</code>, don't call {@link Doc#isIncluded()}.
+     */
     private boolean ignoreJavadocIsIncluded;
    
+    /**
+     * Create a new instance
+     */
     private PublishedApiDoclet() {
     }
    
@@ -301,329 +290,104 @@ public class PublishedApiDoclet implements MessageReciver {
     public final void setIncludeTag(String includeTag) {
         this.includeTag = includeTag;
     }
-    /**
-     * @return Returns the errorReporter.
-     */
-    public final DocErrorReporter getErrorReporter() {
-        return errorReporter;
-    }
-    /**
-     * @param errorReporter The errorReporter to set.
-     */
-    public final void setErrorReporter(DocErrorReporter errorReporter) {
-        this.errorReporter = errorReporter;
-    }
-
-
-    
-
-	/* (non-Javadoc)
-	 * @see de.kruis.padoclet.HalfDynamicProxy.MessageReciver#recive(java.lang.String)
-	 */
-	public void recive(String theMessage, int priority) {
-		if(priority == MessageReciver.PRIORITY_DEBUG) {
-			errorReporter.printNotice(theMessage);		
-		} else if (priority == MessageReciver.PRIORITY_WARN) {
-			errorReporter.printWarning(theMessage);
-		} else {
-			errorReporter.printError(theMessage);
-		}
-	}   
-    
-    /**
-     * Invoke a static method on the delegate doclet.
-     * 
-     * This method performs a few security checks.
-     * 
-     * @param name name of the method to be invoked
-     * @param par an array, that contains the method parameters
-     * @return the return value of the invoked method.
-     */
-    private static Object delegateDocletInvoke(String name, Object[] par) {
-        try{
-        Method[] docletmethods = Doclet.class.getMethods();
-        for(int i=0;i<docletmethods.length;i++) {
-            if(! docletmethods[i].getName().equals(name)) 
-                continue;
-            int modifiers = docletmethods[i].getModifiers();
-            if (! (Modifier.isStatic(modifiers) && Modifier.isPublic(modifiers)))
-                continue;
-            Class[] partypes = docletmethods[i].getParameterTypes();
-            if (partypes.length != (par!=null ? par.length : 0)) 
-                continue;
-            for(int j=0;j<partypes.length;j++) {
-                if (! (par[j] == null || partypes[j].isInstance(par[j]))) 
-                    continue;
-            }
-            // OK, we hav the right method signature
-            Method m = DH.delegateDoclet.getMethod(name, partypes);
-            modifiers = m.getModifiers();
-            if (! (Modifier.isStatic(modifiers) && Modifier.isPublic(modifiers)))
-                throw new NoSuchMethodException("Method is not public static: "+m.toString());
-            if (! docletmethods[i].getReturnType().isAssignableFrom(m.getReturnType()))
-                throw new NoSuchMethodException("Method has incompatible return type: "+m.toString());
-            try {
-            	return m.invoke(null,par);
-            }catch(InvocationTargetException e) {
-            	Throwable targetException = e.getTargetException();
-            	if (targetException instanceof Exception) {
-            		throw (Exception) targetException;
-            	} else {
-            		throw new RuntimeException(targetException);
-            	}
-            }
-        }
-        throw new NoSuchMethodException(name);
-        } catch(RuntimeException e) {
-            throw e;
-        } catch(Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-    
-    
-    private static class Option {
-    	public final static String namePrefix = "-pad";
-    	/**
-    	 * Holds one line.separator character. 
-    	 */
-    	public final static String LF = System.getProperty("line.separator");
-    	/**
-    	 * Holds a line.separator and some spaces. Used to format option descriptions.
-    	 */
-    	public final static String LI = LF+"            ";
-    	public final String name;
-    	public String value;
-    	private final String defaultValue;
-    	public final boolean isBoolean;
-    	public final boolean isTag;
-    	public final String description;
     	
-    	public Option(String name, String defaultValue, boolean isTag, String description) {
-    		this.isBoolean = false;
-    		this.name = name;
-    		this.value = this.defaultValue = defaultValue;
-    		this.isTag = isTag;
-    		this.description = description;
-    	}
-    	
-    	public Option(String name, String description) {
-    		this.isBoolean = true;
-    		this.name = name;
-    		this.value = this.defaultValue = Boolean.FALSE.toString();
-    		this.isTag = false;
-    		this.description = description;
-    	}
-    	
-    	public boolean isSet() {
-    		return Boolean.valueOf(value).booleanValue();
-    	}
-		/* (non-Javadoc)
-		 * @see java.lang.Object#toString()
-		 */
-		public String toString() {
-            String strTmp = namePrefix+name+(isBoolean?"":" <value>");  
-			return strTmp 
-				+("                                  ".substring(strTmp.length()))
-				+"Default value is: '"+defaultValue+"'"+LI+description;
-		}
-    	
-    	private static Map options = new TreeMap();
-    	public static void register(Option option) {
-    		options.put(Introspector.decapitalize(option.name),option);
-    	}
-    	public static Option get(String name) {
-    		return (Option) options.get(Introspector.decapitalize(name));
-    	}
-    	public static String getDescriptions() {
-    		StringBuffer sb = new StringBuffer();
-    		Iterator iterator = options.values().iterator();
-    		while(iterator.hasNext()) {
-    			sb.append(iterator.next()).append(LF);
-    		}
-    		return sb.toString();
-    	}
-    	public static Set getTags() {
-    		Set set = new HashSet();
-    		Iterator iterator = options.values().iterator();
-    		while(iterator.hasNext()) {
-    			Option o = (Option) iterator.next();
-    			if(o.isTag) set.add(o.value);
-    		}
-    		return set;
-    	}
-    	private static Option getWithPrefix(String name) {
-    		if (name == null || ! name.startsWith(namePrefix))
-    			return null;
-    		return get(name.substring(namePrefix.length()));
-    	}
-    	public static int optionLength(String name) {
-    		Option option = getWithPrefix(name);
-    		if (option == null)
-    			return 0;
-    		return option.isBoolean ? 1 : 2;
-    	}
-    	public static void initOptions(String [][]options) {
-    		for(int i=0;i<options.length;i++) {
-    	   		Option option = getWithPrefix(options[i][0]);
-    	   	    if (option == null)
-    	   	    	continue;
-    	   	    if (option.isBoolean) {
-    	   	    	option.value = Boolean.toString(true);
-    	   	    } else {
-    	   	    	option.value = options[i][1];
-    	   	    }
-    		}
-    	}
-    	public static void initJavaBeanProperties(Object bean) throws Throwable {
-    		PropertyDescriptor[] pd = 
-    			Introspector.getBeanInfo(bean.getClass()).getPropertyDescriptors();
-    		for(int i=0;i<pd.length;i++) {
-    			Method wm = pd[i].getWriteMethod();
-    			if (wm == null)
-    				continue;
-    			String name = pd[i].getName();
-    			//System.err.println("Going to set Property: "+name);
-    			Option option = Option.get(name);
-    			if (option == null)
-    				continue;
-    			Class propertyType = pd[i].getPropertyType();
-    			Object value = null;
-    			if (propertyType.isAssignableFrom(String.class)) {
-    				value = option.value;
-    			} else if (propertyType.isAssignableFrom(Integer.TYPE)) {
-    				value = new Integer(option.value);
-    			} else if (propertyType.isAssignableFrom(Boolean.TYPE)) {
-    				value = Boolean.valueOf(option.isSet());
-    			} else {
-    				continue;
-    			}
-    			try {
-    				wm.invoke(bean,new Object[]{ value});
-        			//System.err.println("Done with Property: "+name+" new value is: "+value);
-    			}catch (InvocationTargetException e) {
-    				throw e.getTargetException();
-    			}
-    		}
-    	}
-    	
-    	static {
-    		register(new Option("FilterDefault",".*",false,"Default regular expression for all filter options."+LI
-    				+"PublishedApiDoclet tags are ignored, unless the regular expression matches the text"+LI
-    				+"after the tag (that may be the empty string). The default regular expression \".*\" matches"+LI
-    				+"everything including the empty string."+LI
-    				+"  Every matched portion of the tag gets a priority number and the maximum of all these numbers"+LI
-    				+"is taken as the priority for this tag and language element. If a matched portion of the text"+LI
-    				+"contains a decimal number (e.g. \"foo123\") then the number is taken as the priority of the"+LI
-    				+"match. Otherwise the match priority is 1."+LI
-    				+"  The comparision of include- and exclude-priorities determinates, if the language element"+LI
+    // register the options. The option names must match the setable properties of 
+    // the class
+   	static {
+    		Option.register(new Option("FilterDefault",".*",false,"Default regular expression for all filter options."+Option.LI
+    				+"PublishedApiDoclet tags are ignored, unless the regular expression matches the text"+Option.LI
+    				+"after the tag (that may be the empty string). The default regular expression \".*\" matches"+Option.LI
+    				+"everything including the empty string."+Option.LI
+    				+"  Every matched portion of the tag gets a priority number and the maximum of all these numbers"+Option.LI
+    				+"is taken as the priority for this tag and language element. If a matched portion of the text"+Option.LI
+    				+"contains a decimal number (e.g. \"foo123\") then the number is taken as the priority of the"+Option.LI
+    				+"match. Otherwise the match priority is 1."+Option.LI
+    				+"  The comparision of include- and exclude-priorities determinates, if the language element"+Option.LI
     				+"will be documented."));
-    		register(new Option("ExcludeTag","pad.exclude",true,"The name of the exclude tag."+LI
+    		Option.register(new Option("ExcludeTag","pad.exclude",true,"The name of the exclude tag."+Option.LI
     				+"Use this option to redefine the tag. The empty string disables the tag."));
-    		register(new Option("ExcludeFilter","<value of "+namePrefix+"FilterDefault>",false,"The regular expression used to filter excludeTags."));
-    		register(new Option("IncludeTag","pad.include",true,"The name of the include tag."+LI
+    		Option.register(new Option("ExcludeFilter","<value of "+Option.namePrefix+"FilterDefault>",false,"The regular expression used to filter excludeTags."));
+    		Option.register(new Option("IncludeTag","pad.include",true,"The name of the include tag."+Option.LI
     				+"Use this option to redefine the tag. The empty string disables the tag."));
-    		register(new Option("IncludeFilter","<value of "+namePrefix+"FilterDefault>",false,"The regular expression used to filter includeTags."));
-    		register(new Option("ForceIncludeTag","pad.forceInclude",true,"The name of the forceInclude tag. This tag is used,"+LI
-    				+"to include lenguage elements, that were excluded by the doclet itself (e.g. a private method)."+LI
-    				+"This tag has no priority."+LI
+    		Option.register(new Option("IncludeFilter","<value of "+Option.namePrefix+"FilterDefault>",false,"The regular expression used to filter includeTags."));
+    		Option.register(new Option("ForceIncludeTag","pad.forceInclude",true,"The name of the forceInclude tag. This tag is used,"+Option.LI
+    				+"to include lenguage elements, that were excluded by the doclet itself (e.g. a private method)."+Option.LI
+    				+"This tag has no priority."+Option.LI
     				+"  Use this option to redefine the tag. The empty string disables the tag."));
-    		register(new Option("ForceIncludeFilter","<value of "+namePrefix+"FilterDefault>",false,"The regular expression used to filter forceIncludeTags."));
-    		register(new Option("ExcludeChildsTag","pad.excludeChilds",true,"The name of the excludeChilds tag. This tag is similar to the"+LI
-    				+"@pad.exclude tag, but it influences the exclude priority for childs of the taged element only."+LI
-    				+"The effective child exclude priority is the maximum of the @pad.exclude and the"+LI
-    				+"@pad.excludeChilds priorities."+LI
+    		Option.register(new Option("ForceIncludeFilter","<value of "+Option.namePrefix+"FilterDefault>",false,"The regular expression used to filter forceIncludeTags."));
+    		Option.register(new Option("ExcludeChildsTag","pad.excludeChilds",true,"The name of the excludeChilds tag. This tag is similar to the"+Option.LI
+    				+"@pad.exclude tag, but it influences the exclude priority for childs of the taged element only."+Option.LI
+    				+"The effective child exclude priority is the maximum of the @pad.exclude and the"+Option.LI
+    				+"@pad.excludeChilds priorities."+Option.LI
     				+"  Use this option to redefine the tag. The empty string disables the tag."));
-    		register(new Option("ExcludeChildsFilter","<value of "+namePrefix+"FilterDefault>",false,"The regular expression used to filter excludeChildsTags."));
-    		register(new Option("DefaultIsExclude","Exclude all items except explicitly included ones. This option is usefull,"+LI
+    		Option.register(new Option("ExcludeChildsFilter","<value of "+Option.namePrefix+"FilterDefault>",false,"The regular expression used to filter excludeChildsTags."));
+    		Option.register(new Option("DefaultIsExclude","Exclude all items except explicitly included ones. This option is usefull,"+Option.LI
     				+"if you want to include only a hand selected subset of your API."));
-    		register(new Option("DefaultPriority","1",false,"The priority of the default behaviour."));
-    		register(new Option("DisableJavadocFilter","Get unfiltered item collections from javadoc. You may need to"+LI
+    		Option.register(new Option("DefaultPriority","1",false,"The priority of the default behaviour."));
+    		Option.register(new Option("DisableJavadocFilter","Get unfiltered item collections from javadoc. You may need to"+Option.LI
     				+"use this option, if you use the @pad.forceInclude tag."));
-    		register(new Option("IgnoreJavadocIsIncluded","Do not call the javadoc isIncluded method."));
-    		register(new Option("NoTagOptions","Do not add -tag-options to the option list of the formating doclet."+LI
-    				+"Use this option, if your formating doclet doesn't understand the \"-tag <tagname>:X\" option."));
-    		register(new Option("Help","Show this help message."));
+    		Option.register(new Option("IgnoreJavadocIsIncluded","Do not call the javadoc isIncluded method."));
     	}
-    }
-    
-   
-    
-    private static String[][] filterOptions(String [][] options) {
-        // filter our own options
-        List filteredOptions = new ArrayList();
-        for(int i=0; i<options.length; i++) {
-        	if (Option.optionLength(options[i][0]) == 0)
-        		filteredOptions.add(options[i]);
-        }
-        if((! Option.get("NoTagOptions").isSet()) && optionLength("-tag") == 2) {
-        	// the -tag option of the standard doclet seems to be supported
-        	Iterator iterator = Option.getTags().iterator();
-        	while(iterator.hasNext()) {
-        		filteredOptions.add(new String[] {"-tag", iterator.next()+":X"});
-        	}
-        }
-        return (String[][]) filteredOptions.toArray(new String[filteredOptions.size()][]);
-    }
+     
 
+    /**
+     * Implements the doclet validOptions method
+     * 
+     * @param options the options
+     * @param reporter used to emit messages
+     * @return <code>true</code>, is everything is ok, <code>false</code> otherwise.
+     * @throws java.io.IOException
+     * @see com.sun.javadoc.Doclet#validOptions(java.lang.String[][], com.sun.javadoc.DocErrorReporter)
+     */
     public static boolean validOptions(String[][] options,
             DocErrorReporter reporter) throws java.io.IOException {
-    	Option.initOptions(options);
-    	boolean showHelp = Option.get("Help").isSet();
+    	boolean showHelp = false;
     	
+    	// init the options, because we need the DefaultPriority option
+    	Option.initOptions(options);    	
     	try{
     		Integer.parseInt(Option.get("DefaultPriority").value);
     	} catch (NumberFormatException e) {
 			reporter.printError("Option "+Option.namePrefix+"DefaultPriority"+" requires an integer argument" );
 			showHelp = true;
     	}
-        if (!((Boolean) delegateDocletInvoke("validOptions", new Object[] {filterOptions(options),reporter})).booleanValue()) {
-        	showHelp = true;
-        }
-        if (showHelp) {
-        	reporter.printNotice(Option.LF+
-        			PublishedApiDoclet.class.getName()+ " options:"+
-        			Option.LF+Option.getDescriptions());
-        	return false;
-        }
-        return true;
+    	// delegate most of the work to the helper method
+        return validOptionsHelper(options,reporter,showHelp,PublishedApiDoclet.class.getName());
     }
 
+    /**
+     * The doclet optionLength method.
+     * 
+     * @param option the name of the option
+     * @return the length or 0, if the option is unknown 
+     * @see com.sun.javadoc.Doclet#optionLength(java.lang.String)
+     */
     public static int optionLength(String option) {
-    	int length = Option.optionLength(option);
-    	if (length > 0)
-    		return length;
-        length = ((Integer) delegateDocletInvoke("optionLength",new Object[] {option})).intValue();
-        if ("-help".equals(option)) {
-            System.out.println(Option.LF+"Provided by "+PublishedApiDoclet.class.getName()+" doclet:"
-                    +Option.LF+Option.getDescriptions());
-        }
-        return length;
+    	// delegate the work to the helper method
+        return optionLengthHelper(option,PublishedApiDoclet.class.getName());
     }
 
+    /**
+     * The doclet start method.
+     * 
+     * @param root the RootDoc object
+     * @return <code>true</code>, if everything is ok, otherwise <code>false</code>.
+     * @throws java.io.IOException
+     * @see Doclet#start(com.sun.javadoc.RootDoc)
+     */
     public static boolean start(RootDoc root) throws java.io.IOException {
-        // process our options
+        // process our options: set the default for the filter options
         Option.initOptions(root.options()); // first pass: we need FilterDefault
         Option.get("ExcludeFilter").value = 
         	Option.get("ExcludeChildsFilter").value =
         		Option.get("IncludeFilter").value =
         			Option.get("ForceIncludeFilter").value 
         			= Option.get("FilterDefault").value;
-        // reinit, now we have valid filter values
-        Option.initOptions(root.options());
-        PublishedApiDoclet pad = new PublishedApiDoclet();
-        try {
-			Option.initJavaBeanProperties(pad);
-		} catch (Throwable e) {
-			e.printStackTrace();
-			root.printError(e.toString());
-			return false;
-		}
-        pad.setErrorReporter(root);
-        return ((Boolean) delegateDocletInvoke("start", 
-        		new Object[]{ (RootDoc) HalfDynamicProxy.getHDPProxy(root, 
-        				RootDoc.class, 
-        				HalfDynamicProxy.stateFactory(pad,pad)) })).booleanValue();
+        
+        // create the filter doclet instance
+        FilterDocletBase fd = new PublishedApiDoclet();
+        // delegate the work to the helper method
+        return startHelper(root,fd);
     }
 
     /**
@@ -631,13 +395,15 @@ public class PublishedApiDoclet implements MessageReciver {
      * 
      * This method simply calls the doclet main method.
      * 
-     * @param args
+     * @param args the command line arguments
+     * @see Main#execute(java.lang.String, java.lang.String, java.lang.String[])
      */
     public static void main(String[] args) {
         String name = PublishedApiDoclet.class.getName();
         Main.execute(name, name, args);
     }
 
+    // initialize the proxy class table
 	static { 
 		HalfDynamicProxy.setProxyClassTable(
 				new Class[][] {
@@ -651,22 +417,6 @@ public class PublishedApiDoclet implements MessageReciver {
 		);
 	}
 	
-
-    private static class ComparableHandler extends HalfDynamicProxy  {
-		
-		/* (non-Javadoc)
-		 * @see java.lang.Comparable#compareTo(java.lang.Object)
-		 */
-		public int compareTo(Object o) {
-			return ((Comparable)target).compareTo(unwrap(o));
-		}
-
-		protected void debug(String message) {
-			PublishedApiDoclet pad = (PublishedApiDoclet) getHDPStateUserObject();
-			pad.errorReporter.printNotice(message);
-		}
-		
-	}
 	
 	private static class DocHandler extends ComparableHandler {
 

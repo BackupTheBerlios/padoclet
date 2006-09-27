@@ -18,74 +18,145 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
  */
 
-
 /**
  * 
  */
 package de.kruis.padoclet;
 
 import java.lang.reflect.Array;
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Map;
 import java.util.WeakHashMap;
 
-
+/**
+ * This class is a quite universaly usable base class for a dynamic proxy.
+ * 
+ * 
+ * @author kruis
+ */
 /**
  * @author kruis
- * @pad.include
+ *
  */
 public class HalfDynamicProxy implements InvocationHandlerWithTarget {
 	/**
+	 * Used to emit a message.
+	 * 
 	 * @author kruis
-	 * @pad.exclude
 	 */
-	public static interface MessageReciver {
+	public static interface MessageInterface {
 		static int PRIORITY_ERROR = 0;
+
 		static int PRIORITY_WARN = 1;
+
 		static int PRIORITY_DEBUG = 2;
-		void recive(String theMessage, int priority);
+
+		void emitMessage(String theMessage, int priority);
 	}
 
+	/**
+	 * Holds the state of a HalfDynamicProxy.
+	 * 
+	 * @author kruis
+	 * 
+	 */
+	/**
+	 * @author kruis
+	 * 
+	 */
+	/**
+	 * @author kruis
+	 * 
+	 */
 	private static class HDPState {
-		private static HalfDynamicProxy.MessageReciver defaultReciver = new MessageReciver() {
-			/* (non-Javadoc)
-			 * @see de.kruis.padoclet.PublishedApiDoclet.HalfDynamicProxy.MessageReciver#recive(java.lang.String)
+		/**
+		 * a default implementation of the {@link HalfDynamicProxy.MessageInterface}.
+		 */
+		private static HalfDynamicProxy.MessageInterface defaultReciver = new MessageInterface() {
+			/*
+			 * (non-Javadoc)
+			 * 
+			 * @see de.kruis.padoclet.HalfDynamicProxy.MessageInterface#emitMessage(java.lang.String,
+			 *      int)
 			 */
-			public void recive(String theMessage, int priority) {
+			public void emitMessage(String theMessage, int priority) {
 				System.err.println(theMessage);
 			}
 		};
+
+		/**
+		 * Holds a user provided object. Not used by the HalfDynamicProxy class.
+		 */
 		private Object userState;
-		private Map proxyCache;
-		private MessageReciver reciver;
-		
-		public HDPState(Object userState, MessageReciver reciver) {
+
+		/**
+		 * holds the instance cache. This cache is required in order to build
+		 * just a one proxy for each proxy target.
+		 */
+		private WeakHashMap proxyCache;
+
+		/**
+		 * where to send messages to.
+		 */
+		private MessageInterface reciver;
+
+		/**
+		 * Create a new state object
+		 * 
+		 * @param userState
+		 *            an arbitrary object provided by the caller. May be
+		 *            <code>null</code>.
+		 * @param reciver
+		 *            where to send messages to. May be <code>null</code>.
+		 */
+		public HDPState(Object userState, MessageInterface reciver) {
 			this.userState = userState;
 			this.reciver = reciver != null ? reciver : defaultReciver;
 			this.proxyCache = new WeakHashMap();
 		}
 
 		public void debug(String message) {
-			this.reciver.recive(message,MessageReciver.PRIORITY_DEBUG);
+			this.reciver.emitMessage(message, MessageInterface.PRIORITY_DEBUG);
 		}
-		
+
 		public void error(String message) {
-			this.reciver.recive(message,MessageReciver.PRIORITY_ERROR);
+			this.reciver.emitMessage(message, MessageInterface.PRIORITY_ERROR);
 		}
 	}
-	
-		
+
+	/**
+	 * Holds a mapping table, that determinates the invacation handler class for
+	 * a proxy target class.
+	 */
 	private static Class[][] proxyClassTable;
-	
-    protected Object target;
-    private HalfDynamicProxy.HDPState state;
-    
-    public static HDPState stateFactory(Object userState, MessageReciver reciver) {
-    	return new HDPState(userState, reciver);
-    }
-    
+
+	/**
+	 * holds the target.
+	 */
+	protected Object target;
+
+	/**
+	 * holds the state
+	 */
+	private HalfDynamicProxy.HDPState state;
+
+	/**
+	 * Create a new state object.
+	 * 
+	 * @param userState
+	 *            an arbitrary object provided by the caller. May be
+	 *            <code>null</code>.
+	 * @param reciver
+	 *            where to send messages to. May be <code>null</code>.
+	 * @return a new initialized HDPState object
+	 */
+	public static HDPState stateFactory(Object userState,
+			MessageInterface reciver) {
+		return new HDPState(userState, reciver);
+	}
 
 	/**
 	 * @return Returns the proxyClassTable.
@@ -95,14 +166,25 @@ public class HalfDynamicProxy implements InvocationHandlerWithTarget {
 	}
 
 	/**
-	 * @param proxyClassTable The proxyClassTable to set.
+	 * Set the proxy class table.
+	 * 
+	 * The proxyClassTable is used to select the
+	 * {@link InvocationHandlerWithTarget}, to be used for a given proxy target
+	 * class. Each entry of the table is a <code>Class[]</code>, that
+	 * contains a class implementing {@link InvocationHandlerWithTarget} as its
+	 * first entry and zero or more interfaces as additional entries, that must
+	 * be implemented by the object to create a proxy for. The first matching
+	 * invocation handler is used.
+	 * 
+	 * @param proxyClassTable
+	 *            The proxyClassTable to set.
 	 */
 	public static void setProxyClassTable(Class[][] proxyClassTable) {
 		HalfDynamicProxy.proxyClassTable = proxyClassTable;
 	}
 
-	/**
-	 * @param target
+	/* (non-Javadoc)
+	 * @see de.kruis.padoclet.InvocationHandlerWithTarget#setupInvocationHandler(java.lang.Object, java.lang.Object)
 	 */
 	public final void setupInvocationHandler(Object target, Object state) {
 		this.target = target;
@@ -110,47 +192,86 @@ public class HalfDynamicProxy implements InvocationHandlerWithTarget {
 	}
 
 	/**
-	 * @return Returns the target.
+	 * @return Returns the invovation target.
 	 */
 	public final Object getInvocationTarget() {
 		return target;
 	}
 
+	/**
+	 * Get the dynamic proxy for this object.
+	 * @return an instance of {@link Proxy}.
+	 */
 	public Proxy dynamicProxyInstance() {
 		return (Proxy) state.proxyCache.get(this.target);
 	}
 
+	/**
+	 * Get the user object.
+	 * 
+	 * @return the user object, that was provided to the call of {@link #stateFactory(Object, MessageInterface)}.
+	 */
 	protected Object getHDPStateUserObject() {
 		return state.userState;
 	}
-	
+
+	/**
+	 * Get the proxy for an object using the same state as this proxy uses.
+	 * 
+	 *  If obj is an array, this method 
+	 * is called recursively on each element of the array.
+	 * 
+	 * @param obj the object to create a proxy for
+	 * @param expect the expected type of the object. This is used,
+	 * if <code>obj</code> is an array.
+	 * @return the proxy object, or obj itself.
+	 * @see #getHDPProxy(Object, Class, HDPState)
+	 */
 	protected Object getHDPProxy(Object obj, Class expect) {
-		return getHDPProxy(obj,expect,state);
+		return getHDPProxy(obj, expect, state);
 	}
-	
+
+	/**
+	 * Get the dynamic proxy for an object.
+	 * 
+	 *  If obj is an array, this method 
+	 * is called recursively on each element of the array.
+	 * No proxy is generated, if <code>obj</code> is <code>null</code> or primitive
+	 * or, if <code>obj</code> is already a dynamic proxy, or, if
+	 * no {@link InvocationHandlerWithTarget} implementation is found in the 
+	 * {@link #proxyClassTable} (see {@link #setProxyClassTable(Class[][])}). 
+	 *
+	 * @param obj the object to create a proxy for.
+	 * @param expect the expected type of the object. This is used,
+	 * if <code>obj</code> is an array.
+	 * @param state the state object for the proxy
+	 * @return the proxy object, or obj itself.
+	 * @see #setProxyClassTable(Class[][])
+	 */
 	public static Object getHDPProxy(Object obj, Class expect, HDPState state) {
 		if (obj == null) {
 			return null;
 		}
-		
+
 		// array handling
 		if (obj instanceof Object[]) {
-			Object[] arr = (Object []) obj;
+			Object[] arr = (Object[]) obj;
 			Class componentType = expect.getComponentType();
 			boolean isProxy = true;
-			for(int i=0; i<arr.length; i++) {
+			for (int i = 0; i < arr.length; i++) {
 				if (arr[i] != getHDPProxy(arr[i], componentType, state))
 					isProxy = false;
 			}
-			if(isProxy) 
+			if (isProxy)
 				return obj;
-			Object[] arr2 = (Object[]) Array.newInstance(componentType,arr.length);
-			for(int i=0; i<arr.length; i++) {
+			Object[] arr2 = (Object[]) Array.newInstance(componentType,
+					arr.length);
+			for (int i = 0; i < arr.length; i++) {
 				arr2[i] = getHDPProxy(arr[i], componentType, state);
 			}
 			return arr2;
 		}
-		
+
 		Class cls = obj.getClass();
 		if (Proxy.isProxyClass(cls)) {
 			// is already a proxy
@@ -171,32 +292,35 @@ public class HalfDynamicProxy implements InvocationHandlerWithTarget {
 			Class invocationHandlerClass = null;
 			for (int i = 0; i < proxyClassTable.length; i++) {
 				// assert, that the row is valid
-				if (proxyClassTable[i] == null 
-						|| proxyClassTable[i].length < 1 
-						|| ! InvocationHandlerWithTarget.class.isAssignableFrom(proxyClassTable[i][0]) ) {
-					throw new ClassCastException("invalid proxy class at index "+i);
+				if (proxyClassTable[i] == null
+						|| proxyClassTable[i].length < 1
+						|| !InvocationHandlerWithTarget.class
+								.isAssignableFrom(proxyClassTable[i][0])) {
+					throw new ClassCastException(
+							"invalid proxy class at index " + i);
 				}
 				// loop over all required interfaces
 				int j;
-				for(j=1;j<proxyClassTable[i].length;j++) {
-					if (! proxyClassTable[i][j].isInstance(obj))
+				for (j = 1; j < proxyClassTable[i].length; j++) {
+					if (!proxyClassTable[i][j].isInstance(obj))
 						break;
 				}
-				if (j>=proxyClassTable[i].length) {
+				if (j >= proxyClassTable[i].length) {
 					// we got it
 					invocationHandlerClass = proxyClassTable[i][0];
 					break;
 				}
 			}
-			
+
 			if (invocationHandlerClass == null) {
-				//state.debug("no invocation Handler for object of class: "+cls.getName());
+				// state.debug("no invocation Handler for object of class:
+				// "+cls.getName());
 				return obj;
 			}
 			InvocationHandlerWithTarget invokationHandler = null;
 			try {
-				invokationHandler =
-					(InvocationHandlerWithTarget) invocationHandlerClass.newInstance();
+				invokationHandler = (InvocationHandlerWithTarget) invocationHandlerClass
+						.newInstance();
 				invokationHandler.setupInvocationHandler(obj, state);
 			} catch (RuntimeException e) {
 				throw e;
@@ -205,60 +329,88 @@ public class HalfDynamicProxy implements InvocationHandlerWithTarget {
 				throw new RuntimeException(e);
 			}
 
-			Object proxy =
-				Proxy.newProxyInstance(
-					cls.getClassLoader(),
-					cls.getInterfaces(),
-					invokationHandler);
-			//state.debug("created proxy: "+invocationHandlerClass.getName()+" "+obj.toString());
+			Object proxy = Proxy.newProxyInstance(cls.getClassLoader(), cls
+					.getInterfaces(), invokationHandler);
+			// state.debug("created proxy: "+invocationHandlerClass.getName()+"
+			// "+obj.toString());
 			decoratorMap.put(obj, proxy);
 			return proxy;
 		}
 	}
 
-	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+	/* (non-Javadoc)
+	 * @see java.lang.reflect.InvocationHandler#invoke(java.lang.Object, java.lang.reflect.Method, java.lang.Object[])
+	 */
+	public Object invoke(Object proxy, Method method, Object[] args)
+			throws Throwable {
 		Method m = null;
 		Object methodTarget = null;
 		boolean isProxyRequired = false;
-    	try {
-			m = this.getClass().getMethod(method.getName(), method.getParameterTypes());
+		try {
+			m = this.getClass().getMethod(method.getName(),
+					method.getParameterTypes());
 			methodTarget = this;
-			//state.debug("found replacement method "+m);
-    	} catch (NoSuchMethodException e) {
-    		m = method;
-    		methodTarget = this.target;
-    		isProxyRequired = true;
-			//state.debug("no replacement method "+m);
-    	}
+			// state.debug("found replacement method "+m);
+		} catch (NoSuchMethodException e) {
+			m = method;
+			methodTarget = this.target;
+			isProxyRequired = true;
+			// state.debug("no replacement method "+m);
+		}
 		Object result;
 		try {
 			result = m.invoke(methodTarget, args);
 		} catch (InvocationTargetException e) {
 			throw e.getTargetException();
 		}
-    	if (isProxyRequired) {
-    		result = getHDPProxy(result, m.getReturnType());
-    	}
-    	return result;
-    }
+		if (isProxyRequired) {
+			result = getHDPProxy(result, m.getReturnType());
+		}
+		return result;
+	}
 
-    protected Object unwrap(Object proxy) {
-        if (proxy instanceof Proxy)
-            return ((InvocationHandlerWithTarget) Proxy.getInvocationHandler(proxy)).getInvocationTarget();
-        return proxy;
-    }
-    
-	/* (non-Javadoc)
+	/**
+	 * Get the unwrapped proxy target.
+	 * 
+	 * @param proxy an object
+	 * @return proxy, unless proxy is a dynamic proxy and its invocation handler
+	 * implements the {@link InvocationHandlerWithTarget} interface. In 
+	 * that case the target object will be returned.
+	 */
+	protected static Object unwrap(Object proxy) {
+		if (proxy instanceof Proxy) {
+			InvocationHandler invocationHandler = Proxy.getInvocationHandler(proxy);
+			if (invocationHandler instanceof InvocationHandlerWithTarget) {
+				 return ((InvocationHandlerWithTarget)invocationHandler)
+				 .getInvocationTarget();
+			}
+		}
+		return proxy;
+	}
+
+	/**
+	 * This equals-method calls the equals 
+	 * for the unwrapped proxy target objects.
+	 * 
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
 	public boolean equals(Object obj) {
 		return target.equals(unwrap(obj));
 	}
 
+	/**
+	 * Calls the hashCode method of the proxy target. 
+	 * 
+	 * @see java.lang.Object#hashCode()
+	 */
 	public int hashCode() {
 		return target.hashCode();
 	}
 
+	/** 
+	 * Calls the toString method of the proxy target.
+	 * @see java.lang.Object#toString()
+	 */
 	public String toString() {
 		return target.toString();
 	}

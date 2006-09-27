@@ -3,3 +3,6 @@ bin
 *.jar
 s+c_intern
 README.SC
+
+doc_intern
+doc_published

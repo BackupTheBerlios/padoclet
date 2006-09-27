@@ -23,11 +23,13 @@
 
 <project default="javadoc">
 	
-	<property name="doc" location="doc"/>
+	<property name="doc" location="doc_published"/>
+	<property name="doc_intern" location="doc_intern"/>
 	<property name="pad.javaversion" value="1.4"/>
 	
     <target name="javadoc">
-        <javadoc access="private" 
+    	<delete dir="${doc}" />
+        <javadoc access="public" 
         	author="true" 
         	destdir="${doc}" 
         	nodeprecated="false" 
@@ -35,15 +37,42 @@
         	noindex="false" 
         	nonavbar="false" 
         	notree="false" 
-        	packagenames="de.kruis.padoclet" 
         	source="${pad.javaversion}" 
         	sourcepath="src" 
-        	splitindex="true" 
+        	splitindex="false" 
         	use="true" 
         	version="true" 
         	verbose="true"
         	>
-        	<doclet name="de.kruis.padoclet.PublishedApiDoclet" path="bin"></doclet>
-        	</javadoc>
+			<packageset dir="src">
+				<include name="**/*"/>
+			</packageset>
+        	<doclet name="de.kruis.padoclet.PublishedApiDoclet" path="bin">
+        		<param name="-padFilterDefault" value="sample\d*"/>
+			</doclet>
+        </javadoc>
+        <javadoc access="private" 
+        	author="true" 
+        	destdir="${doc_intern}" 
+        	nodeprecated="false" 
+        	nodeprecatedlist="false" 
+        	noindex="false" 
+        	nonavbar="false" 
+        	notree="false" 
+        	source="${pad.javaversion}" 
+        	sourcepath="src" 
+        	splitindex="false" 
+        	use="true" 
+        	version="true" 
+        	verbose="true"
+        	>
+			<packageset dir="src">
+				<include name="**/*"/>
+			</packageset>
+        	<doclet name="de.kruis.padoclet.PublishedApiDoclet" path="bin">
+        		<param name="-padFilterDefault" value="sample\d*"/>
+        		<param name="-padDefaultPriority" value="2"/>
+			</doclet>
+        </javadoc>
     </target>
 </project>
