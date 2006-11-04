@@ -407,6 +407,8 @@ public class PublishedApiDoclet extends FilterDocletBase {
 	static { 
 		HalfDynamicProxy.setProxyClassTable(
 				new Class[][] {
+				// 1st entry: handler class, 2nd and up: interfaces required to match
+				// the interfaces are part of the com.sun.javadoc
 				new Class[] { RootDocHandler.class,RootDoc.class},
 				new Class[] { ClassDocHandler.class, ClassDoc.class},
 				new Class[] { PackageDocHandler.class, PackageDoc.class},
@@ -418,19 +420,48 @@ public class PublishedApiDoclet extends FilterDocletBase {
 	}
 	
 	
+	/**
+	 * Proxy methods and state common to all {@link Doc} instances.
+	 * 
+	 * @author kruis
+	 */
 	private static class DocHandler extends ComparableHandler {
 
+		/**
+		 * The value of this field is only valid, if {@link #isIncludedValid} 
+		 * is <code>true</code>.
+		 * Then this field determinates, if the Doc instance is included.
+		 */
 		private boolean isIncluded;
-		/** true, is the inclusion state is known and {@link #isIncluded} is valid */
+		
+		/**
+		 * if <code>true</code>, the inclusion state is known and
+		 * {@link #isIncluded} is valid
+		 */
 		private boolean isIncludedValid = false;
 		
-		private boolean isCheckStarted = false; 
-		private int inclusionPriority = 0;
-		private int childInclusionPriority = 0;
+		/**
+		 * Flag, that is used to avoid infinite recursion. May be obsolete.
+		 */
+		private boolean isCheckStarted = false;
 		
+		/**
+		 * Cached inclusion priority for this node. 
+		 * Only valid, if {@link #inclusionPriorityValid} is <code>true</code>.
+		 */
+		private int inclusionPriority = 0;
+		/**
+		 * Cached inclusion priority for childs of this node. 
+		 * Only valid, if {@link #inclusionPriorityValid} is <code>true</code>.
+		 */
+		private int childInclusionPriority = 0;
+		/**
+		 * Indicates, if {@link #inclusionPriority} and {@link #childInclusionPriority} is
+		 * valid.
+		 */
 		private boolean inclusionPriorityValid = false;
 		
-		/* (non-Javadoc)
+		/**
 		 * @see com.sun.javadoc.Doc#isIncluded()
 		 */
 		public boolean isIncluded() {
@@ -479,7 +510,24 @@ public class PublishedApiDoclet extends FilterDocletBase {
 			}
 		}
 
+		/**
+		 * A constant used by {@link #tagPriority(Doc, String, Pattern)}.
+		 */
 		private static final Pattern digits = Pattern.compile(".*?(\\d+)");
+		/**
+		 * Get the priority from a tag.
+		 * 
+		 * If the doc-node does not contain a matching tag, the result is 
+		 * 0. Otherwise the result is at least 1. If one or more matched portions of the 
+		 * tag end with a decimal number the maximum of these numbers is returned. 
+		 * 
+		 * @param doc the document node (package, class, method, field, ...)
+		 * @param tag the name of the tag
+		 * @param filter a filter pattern. Only tags, that match this pattern are
+		 * looked at.
+		 * @return the priority asiciated with the tag: a non negative integer. 0 is the 
+		 * minimum priority.
+		 */
 		private static int tagPriority(Doc doc, String tag, Pattern filter) {
 			if (tag == null || tag.length() == 0)
 				return 0;
