@@ -26,7 +26,29 @@ package de.kruis.padoclet;
 
 import java.lang.reflect.InvocationHandler;
 
+/**
+ * An invocationHandler with the two additional properties <i>target</i> 
+ * and <i>state</i>. 
+ * 
+ * @author kruis
+ *
+ */
 public interface InvocationHandlerWithTarget extends InvocationHandler {
+	/**
+	 * Initialize this invocation handler.
+	 * 
+	 * @param target object, for which this object is a proxy.
+	 * @param state an arbitrary object used to hold starte information
+	 */
 	void setupInvocationHandler(Object target, Object state);
+	
+	
+	/**
+	 * Get the target object, for which this invocation handler is a 
+	 * proxy for.
+	 * 
+	 * @return the value of the target parameter of 
+	 * {@link #setupInvocationHandler(Object, Object)}.
+	 */
 	Object getInvocationTarget();
 }

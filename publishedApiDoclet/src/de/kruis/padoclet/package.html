@@ -29,7 +29,7 @@ and the <def>published API</def>. The former is the set of classes,
 interfaces, methods, fields etc., that can be used from a technical
 point of view. The later is the set of classes, interfaces, methods,
 fields etc., that is intended to be used by a third party. While you
-can change the public API using the refactorrings provided by you IDE,
+can change the public API using the refactorings provided by your IDE,
 you can't change the published API without breaking third party
 code. Therefore the published API will be a (somethimes rather small)
 subset of the public API. There is an elaborate paper about all that
@@ -39,7 +39,7 @@ from Martin Fowler: "Public versus Published Interfaces"
 http://martinfowler.com/ieeeSoftware/published.pdf</a>)</p>
 <p>Unfortunately javadoc doesn't support the concept of a published
 API. The PublishedApiDoclet tries to leverage this deficiency. It acts
-as a filtering proxy or decorator for another proxy, that formats the
+as a filtering proxy or decorator for another doclet, that formats the
 output. The PublishedApiDoclet hides anything, that doesn't belong to
 the published API from the formating doclet.</p>
 <h3>Usage:</h3>
@@ -50,7 +50,7 @@ de.kruis.padoclet.PublishedApiDoclet</code> and <code>-docletpath
 line. Then you have to set the system property
 <code>PublishedApiDoclet.delegate</code> to the name of the formating
 doclet, unless you use the javadoc standard doclet. (A system property
-is used, because the PublishedApiDoclet needs the name of the formatin
+is used, because the PublishedApiDoclet needs the name of the formating
 doclet to parse the command line.) Several command line options
 controll the behaviour of the PublishedApiDoclet. Use the option <code>-padHelp</code>
 to get an overview over the options.

@@ -34,10 +34,6 @@ import java.util.WeakHashMap;
 /**
  * This class is a quite universaly usable base class for a dynamic proxy.
  * 
- * 
- * @author kruis
- */
-/**
  * @author kruis
  *
  */
@@ -60,14 +56,6 @@ public class HalfDynamicProxy implements InvocationHandlerWithTarget {
 	/**
 	 * Holds the state of a HalfDynamicProxy.
 	 * 
-	 * @author kruis
-	 * 
-	 */
-	/**
-	 * @author kruis
-	 * 
-	 */
-	/**
 	 * @author kruis
 	 * 
 	 */
@@ -209,7 +197,7 @@ public class HalfDynamicProxy implements InvocationHandlerWithTarget {
 	/**
 	 * Get the user object.
 	 * 
-	 * @return the user object, that was provided to the call of {@link #stateFactory(Object, MessageInterface)}.
+	 * @return the user object, that was provided to the call of {@link #stateFactory(Object, HalfDynamicProxy.MessageInterface)}.
 	 */
 	protected Object getHDPStateUserObject() {
 		return state.userState;
@@ -225,7 +213,7 @@ public class HalfDynamicProxy implements InvocationHandlerWithTarget {
 	 * @param expect the expected type of the object. This is used,
 	 * if <code>obj</code> is an array.
 	 * @return the proxy object, or obj itself.
-	 * @see #getHDPProxy(Object, Class, HDPState)
+	 * @see #getHDPProxy(Object, Class, HalfDynamicProxy.HDPState)
 	 */
 	protected Object getHDPProxy(Object obj, Class expect) {
 		return getHDPProxy(obj, expect, state);

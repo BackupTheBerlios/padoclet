@@ -38,6 +38,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.StringTokenizer;
 import java.util.TreeMap;
 
 import com.sun.javadoc.DocErrorReporter;
@@ -58,7 +59,7 @@ import de.kruis.padoclet.HalfDynamicProxy.MessageInterface;
  *  <p>
  *  This class is not a doclet by itself. It is intended as a base class for 
  *  a doclet. The derived class has to implement the static methods required by 
- *  a doclet and to setup the options ({@link FilterDocletBase.Option#register(Option)})
+ *  a doclet and to setup the options ({@link FilterDocletBase.Option#register(FilterDocletBase.Option)})
  *  and the proxy table ({@link de.kruis.padoclet.HalfDynamicProxy#setProxyClassTable(Class[][])}).
  *  See {@link de.kruis.padoclet.PublishedApiDoclet} for an example.
  *  
@@ -205,6 +206,12 @@ public class FilterDocletBase implements MessageInterface {
      *
      */
     protected static class Option {
+		/**
+		 * Delimiters used to separate multiple alternative names for the same
+		 * function.  
+		 */
+		public static final String TAG_DELIMITER = " \t\n\r\f,";
+    	
     	/**
     	 * all filter doclet options start with this string.
     	 */
@@ -352,7 +359,12 @@ public class FilterDocletBase implements MessageInterface {
     		Iterator iterator = options.values().iterator();
     		while(iterator.hasNext()) {
     			Option o = (Option) iterator.next();
-    			if(o.isTag) set.add(o.value);
+    			if(o.isTag) {
+    				StringTokenizer tokenizer = new StringTokenizer(o.value,TAG_DELIMITER);
+    				while(tokenizer.hasMoreTokens()) {
+    					set.add(tokenizer.nextToken());
+    				}
+    			}
     		}
     		return set;
     	}
