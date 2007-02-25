@@ -1,7 +1,7 @@
 /*
  *  PublishedApiDoclet - a filter proxy for any javadoc doclet
  *  
- *  Copyright (C) 2006  Anselm Kruis <a.kruis@science-computing.de>
+ *  Copyright (C) 2007  Anselm Kruis <a.kruis@science-computing.de>
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -69,7 +69,7 @@ import de.kruis.padoclet.HalfDynamicProxy.MessageInterface;
 public class FilterDocletBase implements MessageInterface {
     
     /**
-     * The name of the systrem property, that contains the name of the
+     * The name of the system property, that contains the name of the
      * delegate doclet. If this system property is unset, the default 
      * doclet (<code>com.sun.tools.doclets.standard.Standard</code>) is used.
      */
@@ -89,7 +89,9 @@ public class FilterDocletBase implements MessageInterface {
          */
         public static final Class delegateDoclet;
         static {
-            String classname = System.getProperty(PAD_DELEGATE_DOCLET_SYSTEM_PROPERTY,"com.sun.tools.doclets.standard.Standard");
+            String classname = System.getProperty(PAD_DELEGATE_DOCLET_SYSTEM_PROPERTY);
+            if (classname == null || classname.length() == 0)
+            	classname = "com.sun.tools.doclets.standard.Standard";
             Class clazz = null;
             try {
                 clazz = Thread.currentThread().getContextClassLoader().loadClass(classname);

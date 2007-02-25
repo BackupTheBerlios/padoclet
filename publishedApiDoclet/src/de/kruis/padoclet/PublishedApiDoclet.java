@@ -1,7 +1,7 @@
 /*
  *  PublishedApiDoclet - a filter proxy for any javadoc doclet
  *  
- *  Copyright (C) 2006  Anselm Kruis <a.kruis@science-computing.de>
+ *  Copyright (C) 2007  Anselm Kruis <a.kruis@science-computing.de>
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -476,7 +476,7 @@ public class PublishedApiDoclet extends FilterDocletBase {
 		 * Get the value of the boolean <i>included</i> property of the Doc 
 		 * object, that is represented by this dynamic proxy instance.
 		 * 
-		 * This method is the overridden by the PublishedApiDoclet. It is the 
+		 * This method is overridden by PublishedApiDoclet. It is the 
 		 * switch used to turn documentation on or off.
 		 * 
 		 * @return return <code>true</code>, if this node (package, class, method, field) 
@@ -548,7 +548,7 @@ public class PublishedApiDoclet extends FilterDocletBase {
 			} finally {
 				// mark the value of this.isIncluded as valid.
 				this.isIncludedValid = true;
-			}
+			}			
 		}
 
 		/**
