@@ -21,7 +21,7 @@
 /**
  * 
  */
-package de.kruis.padoclet;
+package de.kruis.padoclet.util;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.InvocationHandler;
@@ -30,6 +30,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Map;
 import java.util.WeakHashMap;
+
 
 /**
  * This class is a quite universaly usable base class for a dynamic proxy.

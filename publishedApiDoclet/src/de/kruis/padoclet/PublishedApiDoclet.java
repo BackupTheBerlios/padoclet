@@ -48,6 +48,8 @@ import com.sun.javadoc.Tag;
 import com.sun.javadoc.Type;
 import com.sun.tools.javadoc.Main;
 
+import de.kruis.padoclet.util.HalfDynamicProxy;
+
 /**
  * This class is a java 1.4 doclet, that is used as a filter between the javadoc
  * framework and another doclet, that produces some output.
@@ -435,7 +437,7 @@ public class PublishedApiDoclet extends FilterDocletBase {
 	 * 
 	 * @author kruis
 	 */
-	private static class DocHandler extends ComparableHandler {
+	public static class DocHandler extends ComparableHandler {
 
 
 		/**
@@ -471,6 +473,11 @@ public class PublishedApiDoclet extends FilterDocletBase {
 		 * valid.
 		 */
 		private boolean inclusionPriorityValid = false;
+		
+		/**
+		 * Create a new instance.
+		 */
+		public DocHandler() {}
 		
 		/**
 		 * Get the value of the boolean <i>included</i> property of the Doc 
@@ -722,7 +729,12 @@ public class PublishedApiDoclet extends FilterDocletBase {
 	 * 
 	 * @author kruis
 	 */
-	private static class RootDocHandler extends DocHandler {
+	public static class RootDocHandler extends DocHandler {
+		/**
+		 * Create a new instance.
+		 */
+		public RootDocHandler() {}
+		
 		/* (non-Javadoc)
 		 * @see com.sun.javadoc.RootDoc#classes()
 		 */
@@ -762,7 +774,12 @@ public class PublishedApiDoclet extends FilterDocletBase {
 	 * 
 	 * @author kruis
 	 */
-	private static class ClassDocHandler extends DocHandler {
+	public static class ClassDocHandler extends DocHandler {
+		/**
+		 * Create a new instance.
+		 */
+		public ClassDocHandler() {}
+		
 		/* (non-Javadoc)
 		 * @see com.sun.javadoc.ClassDoc#constructors()
 		 */
@@ -824,7 +841,12 @@ public class PublishedApiDoclet extends FilterDocletBase {
 	 * 
 	 * @author kruis
 	 */
-	private static class PackageDocHandler extends DocHandler {
+	public static class PackageDocHandler extends DocHandler {
+		/**
+		 * Create a new instance.
+		 */
+		public PackageDocHandler() {}
+		
 		/* (non-Javadoc)
 		 * @see com.sun.javadoc.PackageDoc#allClasses()
 		 */

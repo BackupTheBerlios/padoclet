@@ -27,25 +27,23 @@
 
 package de.kruis.padoclet;
 
-import java.beans.Introspector;
-import java.beans.PropertyDescriptor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.StringTokenizer;
 import java.util.TreeMap;
 
 import com.sun.javadoc.DocErrorReporter;
 import com.sun.javadoc.Doclet;
 import com.sun.javadoc.RootDoc;
 
-import de.kruis.padoclet.HalfDynamicProxy.MessageInterface;
+import de.kruis.padoclet.util.AbstractOption;
+import de.kruis.padoclet.util.HalfDynamicProxy;
+import de.kruis.padoclet.util.HalfDynamicProxy.MessageInterface;
 
 /**
  * This class is a base class for javadoc filter doclets. 
@@ -59,8 +57,8 @@ import de.kruis.padoclet.HalfDynamicProxy.MessageInterface;
  *  <p>
  *  This class is not a doclet by itself. It is intended as a base class for 
  *  a doclet. The derived class has to implement the static methods required by 
- *  a doclet and to setup the options ({@link FilterDocletBase.Option#register(FilterDocletBase.Option)})
- *  and the proxy table ({@link de.kruis.padoclet.HalfDynamicProxy#setProxyClassTable(Class[][])}).
+ *  a doclet and to setup the options ({@link FilterDocletBase.Option#register(AbstractOption)})
+ *  and the proxy table ({@link de.kruis.padoclet.util.HalfDynamicProxy#setProxyClassTable(Class[][])}).
  *  See {@link de.kruis.padoclet.PublishedApiDoclet} for an example.
  *  
  * @author kruis
@@ -207,58 +205,13 @@ public class FilterDocletBase implements MessageInterface {
      * @author kruis
      *
      */
-    protected static class Option {
-		/**
-		 * Delimiters used to separate multiple alternative names for the same
-		 * function.  
-		 */
-		public static final String TAG_DELIMITER = " \t\n\r\f,";
+    protected static class Option extends AbstractOption{
     	
     	/**
     	 * all filter doclet options start with this string.
     	 */
     	public final static String namePrefix = "-pad";
     	
-    	/**
-    	 * Holds one line.separator character. 
-    	 */
-    	public final static String LF = System.getProperty("line.separator");
-    	/**
-    	 * Holds a line.separator and some spaces. Used to format option descriptions.
-    	 */
-    	public final static String LI = LF+"            ";
-    	/**
-    	 * the name of the option without the namePrefix.
-    	 */
-    	public final String name;
-    	/**
-    	 * the value of the option. For boolean options the values <code>"true"</code>
-    	 * and <code>"false"</code> are used.
-    	 */
-    	public String value;
-    	
-    	/**
-    	 * the default value for the option. This value is used, if the 
-    	 * option is not given on the command line. For boolean options the values <code>"true"</code>
-    	 * and <code>"false"</code> are used.
-    	 */
-    	private final String defaultValue;
-    	
-    	/**
-    	 * <code>true</code>, if the option has no value parameter. Otherwise, the 
-    	 * option takes one parameter.
-    	 */
-    	public final boolean isBoolean;
-    	/**
-    	 * <code>true</code>, if the value of the option names a javadoc tag. 
-    	 * This information is used to add <code>-tag tagname:X</code> options to 
-    	 * the command line of the formating doclet.
-    	 */
-    	public final boolean isTag;
-    	/**
-    	 * a description of the option. Used for the online help message.
-    	 */
-    	public final String description;
     	
     	/**
     	 * Create a new option, that has a value.
@@ -270,11 +223,7 @@ public class FilterDocletBase implements MessageInterface {
     	 * @param description the description of the option
     	 */
     	public Option(String name, String defaultValue, boolean isTag, String description) {
-    		this.isBoolean = false;
-    		this.name = name;
-    		this.value = this.defaultValue = defaultValue;
-    		this.isTag = isTag;
-    		this.description = description;
+    		super(name, namePrefix, defaultValue, isTag, description);
     	}
     	
     	/**
@@ -284,37 +233,14 @@ public class FilterDocletBase implements MessageInterface {
     	 * @param description the description of the option.
     	 */
     	public Option(String name, String description) {
-    		this.isBoolean = true;
-    		this.name = name;
-    		this.value = this.defaultValue = Boolean.FALSE.toString();
-    		this.isTag = false;
-    		this.description = description;
+    		super(name,namePrefix,description);
     	}
-    	
-    	/**
-    	 * Is a boolean option given?
-    	 * 
-    	 * @return <code>true</code>, if a boolean option is set (to
-    	 * be exact, if the value of the option is <code>"true"</code>. Otherwise
-    	 * returns false.
-    	 */
-    	public boolean isSet() {
-    		return Boolean.valueOf(value).booleanValue();
-    	}
-		/* (non-Javadoc)
-		 * @see java.lang.Object#toString()
-		 */
-		public String toString() {
-            String strTmp = namePrefix+name+(isBoolean?"":" <value>");  
-			return strTmp 
-				+("                                  ".substring(strTmp.length()))
-				+"Default value is: '"+defaultValue+"'"+LI+description;
-		}
     	
     	/**
     	 * holds a (sorted) map of all known options
     	 */
     	private static Map options = new TreeMap();
+
     	/**
     	 * Register an option.
     	 * 
@@ -323,9 +249,10 @@ public class FilterDocletBase implements MessageInterface {
     	 * 
     	 * @param option the option to register.
     	 */
-    	public static void register(Option option) {
-    		options.put(Introspector.decapitalize(option.name),option);
+    	public static void register(AbstractOption option) {
+    		register(option,options);
     	}
+    	
     	/**
     	 * Get an option by name.
     	 * 
@@ -333,8 +260,8 @@ public class FilterDocletBase implements MessageInterface {
     	 * @return the option object. Returns <code>null</code>, if no option with the given  
     	 * name was registered. 
     	 */
-    	public static Option get(String name) {
-    		return (Option) options.get(Introspector.decapitalize(name));
+    	public static AbstractOption get(String name) {
+    		return get(name, options);
     	}
     	/**
     	 * Get a string made from the descriptions of all registered options.
@@ -342,12 +269,7 @@ public class FilterDocletBase implements MessageInterface {
     	 * @return the compiled descriptions.
     	 */
     	public static String getDescriptions() {
-    		StringBuffer sb = new StringBuffer();
-    		Iterator iterator = options.values().iterator();
-    		while(iterator.hasNext()) {
-    			sb.append(iterator.next()).append(LF);
-    		}
-    		return sb.toString();
+    		return getDescriptions(options);
     	}
     	
     	/**
@@ -357,28 +279,7 @@ public class FilterDocletBase implements MessageInterface {
     	 * options where the property <code>isTag</code> is set.
     	 */
     	public static Set getTags() {
-    		Set set = new HashSet();
-    		Iterator iterator = options.values().iterator();
-    		while(iterator.hasNext()) {
-    			Option o = (Option) iterator.next();
-    			if(o.isTag) {
-    				StringTokenizer tokenizer = new StringTokenizer(o.value,TAG_DELIMITER);
-    				while(tokenizer.hasMoreTokens()) {
-    					set.add(tokenizer.nextToken());
-    				}
-    			}
-    		}
-    		return set;
-    	}
-    	/**
-    	 * Get an option by its prefixed name.
-    	 * @param name the name of the option including the prefix.
-    	 * @return the option or <code>null</code>, if no matching option exists.
-    	 */
-    	private static Option getWithPrefix(String name) {
-    		if (name == null || ! name.startsWith(namePrefix))
-    			return null;
-    		return get(name.substring(namePrefix.length()));
+    		return getTags(options);
     	}
     	
     	
@@ -389,29 +290,17 @@ public class FilterDocletBase implements MessageInterface {
     	 * @return 1, if the option takes no parameters, 2, if the option takes a parameter. If the option is unknown, return 0.
     	 */
     	public static int optionLength(String name) {
-    		Option option = getWithPrefix(name);
-    		if (option == null)
-    			return 0;
-    		return option.isBoolean ? 1 : 2;
+    		return optionLength(name, options);
     	}
     	/**
     	 * Initialize the option values.
     	 * 
-    	 * @param options the options as provided by the javadoc core.
+    	 * @param docletoptions the options as provided by the javadoc core.
     	 * @see Doclet#validOptions(java.lang.String[][], com.sun.javadoc.DocErrorReporter)
     	 * @see RootDoc#options()
     	 */
-    	public static void initOptions(String [][]options) {
-    		for(int i=0;i<options.length;i++) {
-    	   		Option option = getWithPrefix(options[i][0]);
-    	   	    if (option == null)
-    	   	    	continue;
-    	   	    if (option.isBoolean) {
-    	   	    	option.value = Boolean.toString(true);
-    	   	    } else {
-    	   	    	option.value = options[i][1];
-    	   	    }
-    		}
+    	public static void initOptions(String [][]docletoptions) {
+    		initOptions(docletoptions, options);
     	}
     	
     	/**
@@ -426,35 +315,7 @@ public class FilterDocletBase implements MessageInterface {
     	 * @throws Throwable
     	 */
     	public static void initJavaBeanProperties(Object bean) throws Throwable {
-    		PropertyDescriptor[] pd = 
-    			Introspector.getBeanInfo(bean.getClass()).getPropertyDescriptors();
-    		for(int i=0;i<pd.length;i++) {
-    			Method wm = pd[i].getWriteMethod();
-    			if (wm == null)
-    				continue;
-    			String name = pd[i].getName();
-    			//System.err.println("Going to set Property: "+name);
-    			Option option = Option.get(name);
-    			if (option == null)
-    				continue;
-    			Class propertyType = pd[i].getPropertyType();
-    			Object value = null;
-    			if (propertyType.isAssignableFrom(String.class)) {
-    				value = option.value;
-    			} else if (propertyType.isAssignableFrom(Integer.TYPE)) {
-    				value = new Integer(option.value);
-    			} else if (propertyType.isAssignableFrom(Boolean.TYPE)) {
-    				value = Boolean.valueOf(option.isSet());
-    			} else {
-    				continue;
-    			}
-    			try {
-    				wm.invoke(bean,new Object[]{ value});
-        			//System.err.println("Done with Property: "+name+" new value is: "+value);
-    			}catch (InvocationTargetException e) {
-    				throw e.getTargetException();
-    			}
-    		}
+    		initJavaBeanProperties(bean, options);
     	}
     	
     	// register default options
@@ -514,7 +375,7 @@ public class FilterDocletBase implements MessageInterface {
     protected static boolean validOptionsHelper(String[][] options,
             DocErrorReporter reporter, boolean showHelp, String className) throws java.io.IOException {
     	Option.initOptions(options);
-    	Option helpOption = Option.get("Help");
+    	AbstractOption helpOption = Option.get("Help");
     	if (helpOption != null && helpOption.isSet()) {
     		showHelp = true;
     	}
@@ -592,7 +453,7 @@ public class FilterDocletBase implements MessageInterface {
      * @author kruis
      *
      */
-    protected static class ComparableHandler extends HalfDynamicProxy  {
+    public static class ComparableHandler extends HalfDynamicProxy  {
 		
 		/* (non-Javadoc)
 		 * @see java.lang.Comparable#compareTo(java.lang.Object)

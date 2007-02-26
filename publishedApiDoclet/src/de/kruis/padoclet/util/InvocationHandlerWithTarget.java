@@ -22,7 +22,7 @@
 /**
  * 
  */
-package de.kruis.padoclet;
+package de.kruis.padoclet.util;
 
 import java.lang.reflect.InvocationHandler;
 
