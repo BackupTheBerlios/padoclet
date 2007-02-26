@@ -29,8 +29,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
-import com.sun.javadoc.Doclet;
-import com.sun.javadoc.RootDoc;
 
 /**
  * Option handling for doclets.
@@ -252,8 +250,8 @@ public abstract class AbstractOption {
 	 * 
 	 * @param options the options as provided by the javadoc core.
 	 * @param optionsMap the options map
-	 * @see Doclet#validOptions(java.lang.String[][], com.sun.javadoc.DocErrorReporter)
-	 * @see RootDoc#options()
+	 * @see com.sun.javadoc.Doclet#validOptions(java.lang.String[][], com.sun.javadoc.DocErrorReporter)
+	 * @see com.sun.javadoc.RootDoc#options()
 	 */
 	protected static void initOptions(String [][]options, Map optionsMap) {
 		for(int i=0;i<options.length;i++) {

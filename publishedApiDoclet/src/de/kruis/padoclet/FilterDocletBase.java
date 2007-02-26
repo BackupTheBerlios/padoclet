@@ -434,14 +434,23 @@ public class FilterDocletBase implements MessageInterface {
 			return false;
 		}
         fd.setErrorReporter(root);
-        return ((Boolean) delegateDocletInvoke("start", 
-        		new Object[]{ (RootDoc) HalfDynamicProxy.getHDPProxy(root, 
-        				RootDoc.class, 
-        				HalfDynamicProxy.stateFactory(fd,fd)) })).booleanValue();
+        RootDoc filteredRootDoc = (RootDoc) HalfDynamicProxy.getHDPProxy(root, RootDoc.class, HalfDynamicProxy.stateFactory(fd,fd));
+        fd.preDelegateStartHook(filteredRootDoc);
+        return ((Boolean) delegateDocletInvoke("start", new Object[]{ filteredRootDoc })).booleanValue();
     }
 	
-
     /**
+     * Hook method called prior to the start-method of the delegate doclet.
+     * 
+     * This implementation is an empty method, that does nothing.
+     * Override this method, if you want to perform any operations within this hook.
+     * 
+	 * @param filteredRootDoc the filtered RootDoc.
+	 */
+	protected void preDelegateStartHook(RootDoc filteredRootDoc) {
+	}
+
+	/**
      * This class is the base of all the 
      * HalfDynamicProxy classes for the javadoc *Doc interfaces.
      * 

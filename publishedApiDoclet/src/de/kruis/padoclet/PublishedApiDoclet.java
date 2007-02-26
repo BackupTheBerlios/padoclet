@@ -114,7 +114,10 @@ public class PublishedApiDoclet extends FilterDocletBase {
      * If <code>true</code>, don't call {@link Doc#isIncluded()}.
      */
     private boolean ignoreJavadocIsIncluded;
-   
+    /**
+     * If <code>true</code>, run the {@link RefCheckDoclet} too.
+     */
+    private boolean withRefCheck;
     /**
      * Create a new instance
      */
@@ -298,7 +301,19 @@ public class PublishedApiDoclet extends FilterDocletBase {
     public final void setIncludeTag(String includeTag) {
         this.includeTag = includeTag;
     }
-    	
+	/**
+	 * @return Returns the withRefCheck
+	 */
+	public boolean isWithRefCheck() {
+		return withRefCheck;
+	}
+	/**
+	 * @param runRefCheckDoclet the withRefCheck to set
+	 */
+	public void setWithRefCheck(boolean runRefCheckDoclet) {
+		this.withRefCheck = runRefCheckDoclet;
+	}
+	
     // register the options. The option names must match the setable properties of 
     // the class
    	static {
@@ -339,6 +354,10 @@ public class PublishedApiDoclet extends FilterDocletBase {
     		Option.register(new Option("DisableJavadocFilter","Get unfiltered item collections from javadoc. You may need to"+Option.LI
     				+"use this option, if you use the @pad.forceInclude tag."));
     		Option.register(new Option("IgnoreJavadocIsIncluded","Do not call the javadoc isIncluded method."));
+		   	Option.register(new Option("WithRefCheck","Perform the tests from RefCheckDoclet"));
+		   	// make sure RefCheckDoclet is loaded
+		   	new RefCheckDoclet();
+		   	Option.register(RefCheckDoclet.Option.get("WarnOn"));
     	}
      
 
@@ -401,6 +420,24 @@ public class PublishedApiDoclet extends FilterDocletBase {
         // delegate the work to the helper method
         return startHelper(root,fd);
     }
+
+	/* (non-Javadoc)
+	 * @see de.kruis.padoclet.FilterDocletBase#preDelegateStartHook(com.sun.javadoc.RootDoc)
+	 */
+	protected void preDelegateStartHook(RootDoc filteredRootDoc) {
+		if (this.isWithRefCheck()) {
+			RefCheckDoclet rcd = new RefCheckDoclet();
+			try {
+				Option.initJavaBeanProperties(rcd);
+			} catch (Throwable e) {
+				e.printStackTrace();
+				this.getErrorReporter().printError(e.toString());
+				return;
+			}
+			rcd.setErrorReporter(this.getErrorReporter());
+			rcd.check(filteredRootDoc);
+		}
+	}
 
     /**
      * A main method.
@@ -884,7 +921,4 @@ public class PublishedApiDoclet extends FilterDocletBase {
 			return (ClassDoc[]) filterDocArray(((PackageDoc)target).ordinaryClasses() ,ClassDoc[] .class, true);
 		}
 	}
-	
-	
-	
 }

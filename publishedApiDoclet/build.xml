@@ -104,6 +104,7 @@
             	<doclet name="de.kruis.padoclet.PublishedApiDoclet" path="bin">
             		<param name="-padFilterDefault" value="src"/>
             		<param name="-padDefaultIsExclude"/>
+            		<param name="-padWithRefCheck"/>
             	</doclet>
             	</javadoc>
         </target>

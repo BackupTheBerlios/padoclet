@@ -30,7 +30,6 @@ import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.ConstructorDoc;
 import com.sun.javadoc.Doc;
 import com.sun.javadoc.DocErrorReporter;
-import com.sun.javadoc.Doclet;
 import com.sun.javadoc.ExecutableMemberDoc;
 import com.sun.javadoc.FieldDoc;
 import com.sun.javadoc.MethodDoc;
@@ -45,6 +44,22 @@ import com.sun.tools.javadoc.Main;
 import de.kruis.padoclet.util.AbstractOption;
 
 
+/**
+ * This doclet creates warnings for references to undocumented items.
+ * 
+ * <p>Sometimes your javadoc documentation of a public method contains
+ * a reference (i.e. "see" or "link"-tags) to an undocumented private method. Usually 
+ * you do not want such a reference, because the reader of the of your documentation
+ * can't make any use of it. This doclet helps you to avoid such dangling references. It 
+ * gives you a warning, if a reference points to an undocumented item, for witch the source
+ * is available. (You don't want a warning for a reference to an undocumented item without 
+ * source-code, like <code>java.lang.Object</code>.)</p>
+ * 
+ * <p>In contrast to {@link de.kruis.padoclet.PublishedApiDoclet} this class is a conventional doclet
+ * without any magic. The only connection to PublishedApiDoclet is the PublishedApiDoclet option 
+ * <code>-WithRefCheck</code>, that makes PublishedApiDoclet to call this doclet.       
+ * 
+ */
 public class RefCheckDoclet {
 
 	public static final String WARNING_FIELD_TYPE = "fieldType";
@@ -61,11 +76,9 @@ public class RefCheckDoclet {
 	public static final String WARNING_ALL = "all";
 	private DocErrorReporter errorReporter;
 	private Set warnOn = new HashSet();
-	private RefCheckDoclet() {
+	
+	RefCheckDoclet() {
 	}
-	
-	
-	
 	
 	private void checkReference(Doc doc, Type type, String warning) {
 		checkReference(doc,type.asClassDoc(),warning);
@@ -103,7 +116,7 @@ public class RefCheckDoclet {
 	}
 	
 	
-    private boolean check(RootDoc root) {
+    boolean check(RootDoc root) {
     	ClassDoc[] classDocs = root.classes();
     	for(int i=0; i<classDocs.length; i++) {
     		check(classDocs[i]);
@@ -198,9 +211,16 @@ public class RefCheckDoclet {
 	public final void setWarnOn(String warnOn) {
 		StringTokenizer tokenizer = new StringTokenizer(warnOn,", ");
 		while(tokenizer.hasMoreElements()) {
-			this.warnOn.add(tokenizer.nextToken());
-		}
+			String token = tokenizer.nextToken();
+			if (token.startsWith("-")) {
+				this.warnOn.remove(token.substring(1));
+			} else {
+				this.warnOn.remove("-"+token);
+			}
+			this.warnOn.add(token);
+		} 
 	}	
+	
 	/**
 	 * Warn on a certain condition?
 	 * 
@@ -208,7 +228,8 @@ public class RefCheckDoclet {
 	 * @return <code>true</code>, if the warnig is active
 	 */
 	public final boolean isWarnOn(String condition) {
-		return this.warnOn.contains(condition) || this.warnOn.contains(RefCheckDoclet.WARNING_ALL);
+		return this.warnOn.contains(condition) 
+		|| ( this.warnOn.contains(RefCheckDoclet.WARNING_ALL) && !this.warnOn.contains("-"+condition) );
 	}
 
 	/**
@@ -227,7 +248,8 @@ public class RefCheckDoclet {
     // register the options. The option names must match the setable properties of 
     // the class
    	static {
-    		Option.register(new Option("WarnOn",RefCheckDoclet.WARNING_ALL,false,"A comma separated list of conditions, that will cause a warning. Valid conditions are:"+Option.LI
+    		Option.register(new Option("WarnOn",RefCheckDoclet.WARNING_ALL,false,"A comma separated list of conditions, that will cause a warning."+Option.LI
+    		        +"A '-' in front of a condition negates the option. Valid conditions are:"+Option.LI
     				+"   \""+RefCheckDoclet.WARNING_SUPER_CLASS+"\"           - the super class of an included class is not documented"+Option.LI
     				+"   \""+RefCheckDoclet.WARNING_FIELD_TYPE+"\"            - a field type is undocumented"+Option.LI
     				+"   \""+RefCheckDoclet.WARNING_THROWN_CLASS+"\"          - a thrown exception or error is undocumented"+Option.LI
@@ -427,8 +449,8 @@ public class RefCheckDoclet {
     	 * Initialize the option values.
     	 * 
     	 * @param docletoptions the options as provided by the javadoc core.
-    	 * @see Doclet#validOptions(java.lang.String[][], com.sun.javadoc.DocErrorReporter)
-    	 * @see RootDoc#options()
+    	 * @see com.sun.javadoc.Doclet#validOptions(java.lang.String[][], com.sun.javadoc.DocErrorReporter)
+    	 * @see com.sun.javadoc.RootDoc#options()
     	 */
     	public static void initOptions(String [][]docletoptions) {
     		initOptions(docletoptions, options);
