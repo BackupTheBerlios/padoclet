@@ -48,6 +48,7 @@ import com.sun.javadoc.Tag;
 import com.sun.javadoc.Type;
 import com.sun.tools.javadoc.Main;
 
+import de.kruis.padoclet.util.AbstractOption;
 import de.kruis.padoclet.util.HalfDynamicProxy;
 
 /**
@@ -114,10 +115,6 @@ public class PublishedApiDoclet extends FilterDocletBase {
      * If <code>true</code>, don't call {@link Doc#isIncluded()}.
      */
     private boolean ignoreJavadocIsIncluded;
-    /**
-     * If <code>true</code>, run the {@link RefCheckDoclet} too.
-     */
-    private boolean withRefCheck;
     /**
      * Create a new instance
      */
@@ -301,20 +298,7 @@ public class PublishedApiDoclet extends FilterDocletBase {
     public final void setIncludeTag(String includeTag) {
         this.includeTag = includeTag;
     }
-	/**
-	 * @return Returns the withRefCheck
-	 */
-	public boolean isWithRefCheck() {
-		return withRefCheck;
-	}
-	/**
-	 * @param runRefCheckDoclet the withRefCheck to set
-	 */
-	public void setWithRefCheck(boolean runRefCheckDoclet) {
-		this.withRefCheck = runRefCheckDoclet;
-	}
-	
-    // register the options. The option names must match the setable properties of 
+	// register the options. The option names must match the setable properties of 
     // the class
    	static {
     		Option.register(new Option("FilterDefault",".*",false,"Default regular expression for all filter options."+Option.LI
@@ -354,10 +338,10 @@ public class PublishedApiDoclet extends FilterDocletBase {
     		Option.register(new Option("DisableJavadocFilter","Get unfiltered item collections from javadoc. You may need to"+Option.LI
     				+"use this option, if you use the @pad.forceInclude tag."));
     		Option.register(new Option("IgnoreJavadocIsIncluded","Do not call the javadoc isIncluded method."));
-		   	Option.register(new Option("WithRefCheck","Perform the tests from RefCheckDoclet"));
-		   	// make sure RefCheckDoclet is loaded
+		   	// make sure RefCheckDoclet is loaded and static initializers were execuded
 		   	new RefCheckDoclet();
-		   	Option.register(RefCheckDoclet.Option.get("WarnOn"));
+		   	AbstractOption option = RefCheckDoclet.Option.get(RefCheckDoclet.OPTION_WARN_ON);
+		   	Option.register(new Option(option.name, "", option.isTag, option.description));
     	}
      
 
@@ -425,18 +409,18 @@ public class PublishedApiDoclet extends FilterDocletBase {
 	 * @see de.kruis.padoclet.FilterDocletBase#preDelegateStartHook(com.sun.javadoc.RootDoc)
 	 */
 	protected void preDelegateStartHook(RootDoc filteredRootDoc) {
-		if (this.isWithRefCheck()) {
-			RefCheckDoclet rcd = new RefCheckDoclet();
-			try {
-				Option.initJavaBeanProperties(rcd);
-			} catch (Throwable e) {
-				e.printStackTrace();
-				this.getErrorReporter().printError(e.toString());
-				return;
-			}
-			rcd.setErrorReporter(this.getErrorReporter());
-			rcd.check(filteredRootDoc);
+		// the following lines are mor or less a copy of 
+		// RefCheckDoclet#start()
+		RefCheckDoclet rcd = new RefCheckDoclet();
+		try {
+			Option.initJavaBeanProperties(rcd);
+		} catch (Throwable e) {
+			e.printStackTrace();
+			this.getErrorReporter().printError(e.toString());
+			return;
 		}
+		rcd.setErrorReporter(this.getErrorReporter());
+		rcd.check(filteredRootDoc);
 	}
 
     /**

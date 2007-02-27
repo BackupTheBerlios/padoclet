@@ -62,6 +62,7 @@ import de.kruis.padoclet.util.AbstractOption;
  */
 public class RefCheckDoclet {
 
+	public static final String OPTION_WARN_ON = "WarnOn";
 	public static final String WARNING_FIELD_TYPE = "fieldType";
 	public static final String WARNING_THROWN_CLASS = "thrownClass";
 	public static final String WARNING_PARAMETER_TYPE = "parameterType";
@@ -248,7 +249,7 @@ public class RefCheckDoclet {
     // register the options. The option names must match the setable properties of 
     // the class
    	static {
-    		Option.register(new Option("WarnOn",RefCheckDoclet.WARNING_ALL,false,"A comma separated list of conditions, that will cause a warning."+Option.LI
+    		Option.register(new Option(RefCheckDoclet.OPTION_WARN_ON,RefCheckDoclet.WARNING_ALL,false,"A comma separated list of conditions, that will cause a warning."+Option.LI
     		        +"A '-' in front of a condition negates the option. Valid conditions are:"+Option.LI
     				+"   \""+RefCheckDoclet.WARNING_SUPER_CLASS+"\"           - the super class of an included class is not documented"+Option.LI
     				+"   \""+RefCheckDoclet.WARNING_FIELD_TYPE+"\"            - a field type is undocumented"+Option.LI

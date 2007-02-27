@@ -107,7 +107,7 @@
         		<!-- define two exclude tags: @pad.exclude and @undocumented -->
         		<param name="-padExcludeTag" value="pad.exclude,undocumented"/>
         		<!-- enable the reference checks -->
-        		<param name="-padWithRefCheck"/>
+        		<param name="-padWarnOn"  value="all"/>
 			</doclet>
         </javadoc>
 
@@ -138,7 +138,7 @@
         		<!-- define two exclude tags: @pad.exclude and @undocumented -->
         		<param name="-padExcludeTag" value="pad.exclude,undocumented"/>
         		<!-- enable the reference checks -->
-        		<param name="-padWithRefCheck"/>
+        		<param name="-padWarnOn"  value="all"/>
 			</doclet>
         </javadoc>
     </target>

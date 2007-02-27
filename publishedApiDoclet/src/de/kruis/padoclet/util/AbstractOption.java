@@ -74,7 +74,7 @@ public abstract class AbstractOption {
 	 * option is not given on the command line. For boolean options the values <code>"true"</code>
 	 * and <code>"false"</code> are used.
 	 */
-	private final String defaultValue;
+	public final String defaultValue;
 	
 	/**
 	 * <code>true</code>, if the option has no value parameter. Otherwise, the 
