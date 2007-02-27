@@ -411,16 +411,18 @@ public class PublishedApiDoclet extends FilterDocletBase {
 	protected void preDelegateStartHook(RootDoc filteredRootDoc) {
 		// the following lines are mor or less a copy of 
 		// RefCheckDoclet#start()
-		RefCheckDoclet rcd = new RefCheckDoclet();
-		try {
-			Option.initJavaBeanProperties(rcd);
-		} catch (Throwable e) {
-			e.printStackTrace();
-			this.getErrorReporter().printError(e.toString());
-			return;
+		if (Option.get(RefCheckDoclet.OPTION_WARN_ON).value.length() > 0) {
+			RefCheckDoclet rcd = new RefCheckDoclet();
+			try {
+				Option.initJavaBeanProperties(rcd);
+			} catch (Throwable e) {
+				e.printStackTrace();
+				this.getErrorReporter().printError(e.toString());
+				return;
+			}
+			rcd.setErrorReporter(this.getErrorReporter());
+			rcd.check(filteredRootDoc);
 		}
-		rcd.setErrorReporter(this.getErrorReporter());
-		rcd.check(filteredRootDoc);
 	}
 
     /**
