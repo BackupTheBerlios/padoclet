@@ -463,24 +463,12 @@ public class FilterDocletBase implements MessageInterface {
      *
      */
     public static class ComparableHandler extends HandlerBase  {
-		
 		/* (non-Javadoc)
 		 * @see java.lang.Comparable#compareTo(java.lang.Object)
 		 */
 		public int compareTo(Object o) {
 			return ((Comparable)target).compareTo(unwrap(o));
-		}
-
-		/**
-		 * print a debug message.
-		 * 
-		 * @param message
-		 */
-		protected void debug(String message) {
-			FilterDocletBase pad = (FilterDocletBase) getHDPStateUserObject();
-			pad.errorReporter.printNotice(message);
-		}
-		
+		}		
 	}
 	
 	/**
@@ -491,7 +479,6 @@ public class FilterDocletBase implements MessageInterface {
      *
      */
     public static class HandlerBase extends HalfDynamicProxy  {
-		
 		/**
 		 * print a debug message.
 		 * 
@@ -501,7 +488,6 @@ public class FilterDocletBase implements MessageInterface {
 			FilterDocletBase pad = (FilterDocletBase) getHDPStateUserObject();
 			pad.errorReporter.printNotice(message);
 		}
-		
 	}
 	
 	
