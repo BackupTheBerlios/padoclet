@@ -45,6 +45,7 @@ import com.sun.javadoc.PackageDoc;
 import com.sun.javadoc.Parameter;
 import com.sun.javadoc.ProgramElementDoc;
 import com.sun.javadoc.RootDoc;
+import com.sun.javadoc.SourcePosition;
 import com.sun.javadoc.Tag;
 import com.sun.javadoc.Type;
 import com.sun.tools.javadoc.Main;
@@ -745,6 +746,15 @@ public class PublishedApiDoclet extends FilterDocletBase {
 				return false;
 			PublishedApiDoclet pad = (PublishedApiDoclet) getHDPStateUserObject();
 			return ! pad.isDisableJavadocFilter();
+		}
+
+		/* (non-Javadoc)
+		 * @see de.kruis.padoclet.FilterDocletBase.HandlerBase#debug(java.lang.String)
+		 */
+		protected void debug(String message) {
+			SourcePosition position = ((Doc)(this.getInvocationTarget())).position();
+			FilterDocletBase pad = (FilterDocletBase) getHDPStateUserObject();
+			pad.getErrorReporter().printNotice(position,message);
 		}
 
 	}
