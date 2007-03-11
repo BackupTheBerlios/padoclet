@@ -38,6 +38,7 @@ import com.sun.javadoc.Parameter;
 import com.sun.javadoc.RootDoc;
 import com.sun.javadoc.SeeTag;
 import com.sun.javadoc.SourcePosition;
+import com.sun.javadoc.Tag;
 import com.sun.javadoc.Type;
 import com.sun.tools.javadoc.Main;
 
@@ -132,14 +133,29 @@ public class RefCheckDoclet {
 	}
 
     private void checkDoc(Doc doc) {
-    	SeeTag[] tags = doc.seeTags();
+    	checkTag(doc, doc.firstSentenceTags());
+    	checkTag(doc, doc.inlineTags());
+    	checkTag(doc, doc.seeTags());
+    }
+    
+    private void checkTag(Doc doc, Tag[] tags) {
     	for(int i=0;i<tags.length;i++) {
-    		Doc r = tags[i].referencedMember();
-    		if (r == null)
-    			r = tags[i].referencedClass();
-    		if (r == null)
-    			r = tags[i].referencedPackage();
-    		checkReference(doc,r,RefCheckDoclet.WARNING_SEE_OR_LINK_REFERENCE);
+    		Tag tag = tags[i];
+    		if(! tag.name().equalsIgnoreCase("text")) {
+    			if (tag instanceof SeeTag) {
+    				SeeTag seeTag = (SeeTag) tag;
+					//getErrorReporter().printNotice(doc.position(),"Ref: "+seeTag.name()+" M:'"+seeTag.referencedMemberName()+"' C:'"+seeTag.referencedClassName()+"' P:'"+seeTag.referencedPackage());
+					Doc r = seeTag.referencedMember();
+					if (r == null)
+						r = seeTag.referencedClass();
+					if (r == null)
+						r = seeTag.referencedPackage();
+					checkReference(doc,r,RefCheckDoclet.WARNING_SEE_OR_LINK_REFERENCE);
+    				return;
+    			}
+    			checkTag(doc, tag.firstSentenceTags());
+    			checkTag(doc, tag.inlineTags());
+    		}
     	}
     }
     
@@ -157,7 +173,7 @@ public class RefCheckDoclet {
     		checkReference(doc,interfaces[i],RefCheckDoclet.WARNING_IMPLEMENTED_INTERFACE);
     	}
     	// check nested classes
-    	ClassDoc[] nestedClasses = doc.innerClasses();
+    	ClassDoc[] nestedClasses = doc.innerClasses(false);
     	for(int i=0;i<nestedClasses.length;i++) {
     		checkReference(doc,nestedClasses[i], RefCheckDoclet.WARNING_NESTED_CLASS);
     	}
@@ -199,6 +215,9 @@ public class RefCheckDoclet {
 		for(int i=0;i<exceptions.length;i++) {
 			checkReference(emember, exceptions[i], RefCheckDoclet.WARNING_THROWN_CLASS);
 		}
+		
+		checkTag(emember, emember.paramTags());
+		checkTag(emember, emember.throwsTags());
 	}
 
 	private void check(FieldDoc field) {
@@ -249,7 +268,9 @@ public class RefCheckDoclet {
     // register the options. The option names must match the setable properties of 
     // the class
    	static {
-    		Option.register(new Option(RefCheckDoclet.OPTION_WARN_ON,RefCheckDoclet.WARNING_ALL,false,"A comma separated list of conditions, that will cause a warning."+Option.LI
+    		Option.register(new Option(RefCheckDoclet.OPTION_WARN_ON,
+    				RefCheckDoclet.WARNING_ALL+",-"+WARNING_NESTED_CLASS,
+    				false,"A comma separated list of conditions, that will cause a warning."+Option.LI
     		        +"A '-' in front of a condition negates the option. Valid conditions are:"+Option.LI
     				+"   \""+RefCheckDoclet.WARNING_SUPER_CLASS+"\"           - the super class of an included class is not documented"+Option.LI
     				+"   \""+RefCheckDoclet.WARNING_FIELD_TYPE+"\"            - a field type is undocumented"+Option.LI
