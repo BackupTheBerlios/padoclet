@@ -83,6 +83,11 @@ public class SuperClassExcludedWarnings {
 	 */
 	public static class IncludedClass extends SuperClassExcludedWarnings implements IncludedInterface, ExcludedInterface2 {
 
+		/**
+		 * The type of this field is nor documented.
+		 */
+		public SuperClassExcludedWarnings fieldWithExcludedType = null;
+		
 		/* (non-Javadoc)
 		 * @see de.kruis.padoclet.example.SuperClassExcludedWarnings.ExcludedInterface#foo()
 		 */
@@ -112,6 +117,20 @@ public class SuperClassExcludedWarnings {
 		}
 
 		/**
+		 * This method demonstrates three more warnings.
+		 *
+		 * This method always throws a {@link SuperClassExcludedWarnings.ExcludedException}.
+		 *
+		 *	@param paramWithUndocumentedType the type of this parameter is not documented
+		 * @return does not return anything
+		 * @throws ExcludedException always thrown
+		 */
+		public ExcludedInterface anotherMethod(ExcludedNestedClass paramWithUndocumentedType) throws ExcludedException {
+			throw new ExcludedException();
+		}
+		
+		
+		/**
 		 * This method sould not generate a warning.
 		 * 
 		 * It overrides a method, that would not be documented by default.
@@ -123,6 +142,30 @@ public class SuperClassExcludedWarnings {
 		}
 		
 		
+		/**
+		 * This class is excluded, because it is private.
+		 * 
+		 * @author kruis
+		 */
+		private static class ExcludedNestedClass {
+			
+		}
+		
 	}
+	
+	/**
+	 * An unddocumented exception class.
+	 * 
+	 * @author kruis
+	 *
+	 */
+	public static class ExcludedException extends Exception {
+
+		/**
+		 *
+		 */
+		private static final long serialVersionUID = 3860184563604729386L;
+	}
+
 	
 }
