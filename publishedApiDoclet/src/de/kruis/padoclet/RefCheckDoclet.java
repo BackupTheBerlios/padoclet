@@ -104,7 +104,8 @@ public class RefCheckDoclet {
 			return;
 		}
 		// format the warning: change the Camel notation to a more readable variant
-		StringBuffer msg = new StringBuffer("reference to undocumented ");
+		StringBuffer msg = new StringBuffer(doc.toString());
+		msg.append(" refers to undocumented ");
 		char[] cs = warning.toCharArray();
 		for(int i=0;i<cs.length;i++) {
 			if (Character.isUpperCase(cs[i])) {
