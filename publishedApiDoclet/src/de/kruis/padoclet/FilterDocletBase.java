@@ -462,7 +462,7 @@ public class FilterDocletBase implements MessageInterface {
      * @author kruis
      *
      */
-    public static class ComparableHandler extends HalfDynamicProxy  {
+    public static class ComparableHandler extends HandlerBase  {
 		
 		/* (non-Javadoc)
 		 * @see java.lang.Comparable#compareTo(java.lang.Object)
@@ -483,6 +483,26 @@ public class FilterDocletBase implements MessageInterface {
 		
 	}
 	
+	/**
+     * This class is the base of all the 
+     * HalfDynamicProxy classes for the javadoc interfaces.
+     * 
+     * @author kruis
+     *
+     */
+    public static class HandlerBase extends HalfDynamicProxy  {
+		
+		/**
+		 * print a debug message.
+		 * 
+		 * @param message
+		 */
+		protected void debug(String message) {
+			FilterDocletBase pad = (FilterDocletBase) getHDPStateUserObject();
+			pad.errorReporter.printNotice(message);
+		}
+		
+	}
 	
 	
 	

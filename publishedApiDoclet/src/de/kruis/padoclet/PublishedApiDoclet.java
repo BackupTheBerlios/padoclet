@@ -42,6 +42,7 @@ import com.sun.javadoc.DocErrorReporter;
 import com.sun.javadoc.FieldDoc;
 import com.sun.javadoc.MethodDoc;
 import com.sun.javadoc.PackageDoc;
+import com.sun.javadoc.Parameter;
 import com.sun.javadoc.ProgramElementDoc;
 import com.sun.javadoc.RootDoc;
 import com.sun.javadoc.Tag;
@@ -448,8 +449,9 @@ public class PublishedApiDoclet extends FilterDocletBase {
 				new Class[] { ClassDocHandler.class, ClassDoc.class},
 				new Class[] { PackageDocHandler.class, PackageDoc.class},
 				new Class[] { DocHandler.class, Doc.class},
-				new Class[] { ComparableHandler.class, Tag.class},
-				new Class[] { ComparableHandler.class, Type.class},
+				new Class[] { HandlerBase.class, Tag.class},
+				new Class[] { HandlerBase.class, Type.class},
+				new Class[] { HandlerBase.class, Parameter.class}
 		}
 		);
 	}
@@ -521,7 +523,7 @@ public class PublishedApiDoclet extends FilterDocletBase {
 				// the result is already known. Nothing to do.
 				return isIncluded;
 			
-			// we probably do not need this chack, but during development it prooved 
+			// we probably do not need this check, but during development it prooved 
 			// to be useful. 
 			if (isCheckStarted)
 				throw new IllegalStateException("unexpected recursion detected");
