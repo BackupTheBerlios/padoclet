@@ -58,7 +58,7 @@ import de.kruis.padoclet.util.AbstractOption;
  * 
  * <p>In contrast to {@link de.kruis.padoclet.PublishedApiDoclet} this class is a conventional doclet
  * without any magic. The only connection to PublishedApiDoclet is the PublishedApiDoclet option 
- * <code>-WithRefCheck</code>, that makes PublishedApiDoclet to call this doclet.       
+ * <code>-padWarnOn</code>, that makes PublishedApiDoclet to call this doclet.       
  * 
  */
 public class RefCheckDoclet {
@@ -79,16 +79,41 @@ public class RefCheckDoclet {
 	private DocErrorReporter errorReporter;
 	private Set warnOn = new HashSet();
 	
+	
+	/**
+	 * Create a new RefCheckDoclet instance.
+	 * 
+	 */
 	RefCheckDoclet() {
 	}
 	
+	/**
+	 * Check a type-Interface.
+	 * 
+	 * @param doc the containing Doc-Interface
+	 * @param type the Type to be checked
+	 * @param warning the warning constant
+	 */
 	private void checkReference(Doc doc, Type type, String warning) {
 		checkReference(doc,type.asClassDoc(),warning);
 	}
+	/**
+	 * Check a ClassDoc-Interface.
+	 * 
+	 * @param doc the containing Doc-Interface
+	 * @param classDoc the ClassDoc to be checked
+	 * @param warning the warning constant
+	 */
 	private void checkReference(Doc doc, ClassDoc classDoc, String warning) {
 		checkReference(doc,(Doc)classDoc,warning);
 	}
-	
+	/**
+	 * Check a Doc-Interface.
+	 * 
+	 * @param doc the containing Doc-Interface
+	 * @param referenced the referenced Doc to be checked
+	 * @param warning the warning constant
+	 */
 	private void checkReference(Doc doc, Doc referenced, String warning) {
 		if (referenced == null)
 			return;
@@ -119,6 +144,16 @@ public class RefCheckDoclet {
 	}
 	
 	
+    /**
+     * Check for references to undocumented items.
+     * 
+     * This method starts a tree-walk of the javadoc tree and looks for 
+     * references to undocumented items (classes, packages, methods, ...), where 
+     * source code of the referenced item is available. 
+     * 
+     * @param root the root of the javadoc tree
+     * @return always <code>true</code>
+     */
     boolean check(RootDoc root) {
     	ClassDoc[] classDocs = root.classes();
     	for(int i=0; i<classDocs.length; i++) {
@@ -133,13 +168,27 @@ public class RefCheckDoclet {
 		return true;
 	}
 
+    /**
+     * Check the tags of a Doc-Interface.
+     * 
+     * @param doc
+     */
     private void checkDoc(Doc doc) {
-    	checkTag(doc, doc.firstSentenceTags());
-    	checkTag(doc, doc.inlineTags());
-    	checkTag(doc, doc.seeTags());
+    	checkTags(doc, doc.firstSentenceTags());
+    	checkTags(doc, doc.inlineTags());
+    	checkTags(doc, doc.seeTags());
     }
     
-    private void checkTag(Doc doc, Tag[] tags) {
+    /**
+     * Check an array of tags.
+     * 
+     * Look for <code>\@see</code> or <code>\@link</code> tags and 
+     * check the reference contained within the tag.
+     * 
+     * @param doc the containing doc-Interface.
+     * @param tags an array of tags
+     */
+    private void checkTags(Doc doc, Tag[] tags) {
     	for(int i=0;i<tags.length;i++) {
     		Tag tag = tags[i];
     		if(! tag.name().equalsIgnoreCase("text")) {
@@ -154,12 +203,17 @@ public class RefCheckDoclet {
 					checkReference(doc,r,RefCheckDoclet.WARNING_SEE_OR_LINK_REFERENCE);
     				return;
     			}
-    			checkTag(doc, tag.firstSentenceTags());
-    			checkTag(doc, tag.inlineTags());
+    			checkTags(doc, tag.firstSentenceTags());
+    			checkTags(doc, tag.inlineTags());
     		}
     	}
     }
     
+    /**
+     * Check a class doc.
+     * 
+     * @param doc the class documentation
+     */
     private void check(ClassDoc doc) {
     	checkDoc(doc);
     	// check superclass
@@ -195,6 +249,11 @@ public class RefCheckDoclet {
     	}
 	}
 
+    /**
+     * Check a method doc.
+     * 
+     * @param method the method documentation
+     */
     private void check(MethodDoc method) {
     	check((ExecutableMemberDoc)method);
     	// check type
@@ -203,6 +262,11 @@ public class RefCheckDoclet {
     	checkReference(method,method.overriddenMethod(),RefCheckDoclet.WARNING_OVERRIDDEN_METHOD);
 	}
 
+	/**
+	 * Check an executable member doc.
+	 * 
+	 * @param emember the executable member documentation
+	 */
 	private void check(ExecutableMemberDoc emember) {
     	checkDoc(emember);
 		// check parameters
@@ -217,17 +281,28 @@ public class RefCheckDoclet {
 			checkReference(emember, exceptions[i], RefCheckDoclet.WARNING_THROWN_CLASS);
 		}
 		
-		checkTag(emember, emember.paramTags());
-		checkTag(emember, emember.throwsTags());
+		checkTags(emember, emember.paramTags());
+		checkTags(emember, emember.throwsTags());
 	}
 
+	/**
+	 * Check a field doc.
+	 * 
+	 * @param field the field documentation.
+	 */
 	private void check(FieldDoc field) {
 		checkDoc(field);
 		checkReference(field,field.type(),RefCheckDoclet.WARNING_FIELD_TYPE);
 	}
 
 	/**
-	 * @param warnOn The list of warning conditions to set
+	 * Set the warnOn propertiy.
+	 * 
+	 * Enables or disables warning conditions. The parameter is a 
+	 * comman separated list of warning names. If a name is prefixed by
+	 * <code>"-"</code>, the corresponding warning is disabled. 
+	 * 
+	 * @param warnOn The list of warning conditions to set. 
 	 */
 	public final void setWarnOn(String warnOn) {
 		StringTokenizer tokenizer = new StringTokenizer(warnOn,", ");
@@ -254,12 +329,16 @@ public class RefCheckDoclet {
 	}
 
 	/**
+	 * Get the error reporter for this doclet.
+	 * 
      * @return Returns the errorReporter provided by the doclet core.
      */
     public final DocErrorReporter getErrorReporter() {
         return errorReporter;
     }
     /**
+     * Set the error reporter for this doclet.
+     * 
      * @param errorReporter The errorReporter to set.
      */
     public final void setErrorReporter(DocErrorReporter errorReporter) {
