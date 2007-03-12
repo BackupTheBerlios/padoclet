@@ -29,7 +29,7 @@
     </description>
 
 	<!-- the program version -->
-	<property name="pad.version" value="0.3pre"/>
+	<property name="pad.version" value="0.3"/>
 	
 	<!-- the java version. Currently only 1.4 is supported -->
 	<property name="pad.javaversion" value="1.4"/>
