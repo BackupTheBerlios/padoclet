@@ -156,7 +156,7 @@ public abstract class AbstractOption {
 	 * @param option the option to register.
 	 * @param options the options map
 	 */
-	protected static void register(AbstractOption option, Map options) {
+	protected static void register(AbstractOption option, Map<String,AbstractOption> options) {
 		options.put(Introspector.decapitalize(option.name),option);
 	}
 	/**
@@ -192,8 +192,8 @@ public abstract class AbstractOption {
 	 * @return a set containing all tag names, that is the values of all
 	 * options where the property <code>isTag</code> is set.
 	 */
-	protected static Set getTags(Map options) {
-		Set set = new HashSet();
+	protected static Set<String> getTags(Map options) {
+		Set<String> set = new HashSet<String>();
 		Iterator iterator = options.values().iterator();
 		while(iterator.hasNext()) {
 			AbstractOption o = (AbstractOption) iterator.next();
@@ -290,7 +290,7 @@ public abstract class AbstractOption {
 			AbstractOption option = AbstractOption.get(name, options);
 			if (option == null)
 				continue;
-			Class propertyType = pd[i].getPropertyType();
+			Class<?> propertyType = pd[i].getPropertyType();
 			Object value = null;
 			if (propertyType.isAssignableFrom(String.class)) {
 				value = option.value;

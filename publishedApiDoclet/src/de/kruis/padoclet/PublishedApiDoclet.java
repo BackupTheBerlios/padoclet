@@ -35,6 +35,10 @@ import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.sun.javadoc.AnnotationDesc;
+import com.sun.javadoc.AnnotationTypeDoc;
+import com.sun.javadoc.AnnotationTypeElementDoc;
+import com.sun.javadoc.AnnotationValue;
 import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.ConstructorDoc;
 import com.sun.javadoc.Doc;
@@ -117,6 +121,15 @@ public class PublishedApiDoclet extends FilterDocletBase {
      * If <code>true</code>, don't call {@link Doc#isIncluded()}.
      */
     private boolean ignoreJavadocIsIncluded;
+    
+    /**
+     * If <code>true</code>, do not filter enum constants
+     */
+    private boolean dontFilterEnumConstants;
+    /**
+     * If <code>true</code>, do not filter annotation elements
+     */
+    private boolean dontFilterAnnotationElements;
     /**
      * Create a new instance
      */
@@ -300,6 +313,36 @@ public class PublishedApiDoclet extends FilterDocletBase {
     public final void setIncludeTag(String includeTag) {
         this.includeTag = includeTag;
     }
+	/**
+	 * @return the dontFilterAnnotationElements
+	 */
+	public final boolean isDontFilterAnnotationElements() {
+		return dontFilterAnnotationElements;
+	}
+
+	/**
+	 * @param dontFilterAnnotationElements the dontFilterAnnotationElements to set
+	 */
+	public final void setDontFilterAnnotationElements(
+			boolean dontFilterAnnotationElements) {
+		this.dontFilterAnnotationElements = dontFilterAnnotationElements;
+	}
+
+	/**
+	 * @return the dontFilterEnumConstants
+	 */
+	public final boolean isDontFilterEnumConstants() {
+		return dontFilterEnumConstants;
+	}
+
+	/**
+	 * @param dontFilterEnumConstants the dontFilterEnumConstants to set
+	 */
+	public final void setDontFilterEnumConstants(boolean dontFilterEnumConstants) {
+		this.dontFilterEnumConstants = dontFilterEnumConstants;
+	}
+
+    
 	// register the options. The option names must match the setable properties of 
     // the class
    	static {
@@ -340,6 +383,8 @@ public class PublishedApiDoclet extends FilterDocletBase {
     		Option.register(new Option("DisableJavadocFilter","Get unfiltered item collections from javadoc. You may need to"+Option.LI
     				+"use this option, if you use the @pad.forceInclude tag."));
     		Option.register(new Option("IgnoreJavadocIsIncluded","Do not call the javadoc isIncluded method."));
+    		Option.register(new Option("DontFilterEnumConstants","Do not filter enum constants. (Enum constants are always included.)"));
+    		Option.register(new Option("DontFilterAnnotationElements","Do not filter annotation elements. (Annotations elements are always included.)"));
 		   	// make sure RefCheckDoclet is loaded and static initializers were execuded
 		   	new RefCheckDoclet();
 		   	AbstractOption option = RefCheckDoclet.Option.get(RefCheckDoclet.OPTION_WARN_ON);
@@ -447,12 +492,18 @@ public class PublishedApiDoclet extends FilterDocletBase {
 				// 1st entry: handler class, 2nd and up: interfaces required to match
 				// the interfaces are part of the com.sun.javadoc
 				new Class[] { RootDocHandler.class,RootDoc.class},
+				new Class[] { AnnotationTypeDocHandler.class, AnnotationTypeDoc.class},
 				new Class[] { ClassDocHandler.class, ClassDoc.class},
 				new Class[] { PackageDocHandler.class, PackageDoc.class},
+				new Class[] { MethodDocHandler.class, MethodDoc.class},
 				new Class[] { DocHandler.class, Doc.class},
+				new Class[] { HandlerBase.class, AnnotationValue.class },
+				new Class[] { HandlerBase.class, AnnotationDesc.class },
+				new Class[] { HandlerBase.class, AnnotationDesc.ElementValuePair.class },
+				new Class[] { ComparableHandler.class, Tag.class, Comparable.class},
 				new Class[] { HandlerBase.class, Tag.class},
 				new Class[] { HandlerBase.class, Type.class},
-				new Class[] { HandlerBase.class, Parameter.class}
+				new Class[] { HandlerBase.class, Parameter.class},
 		}
 		);
 	}
@@ -570,7 +621,12 @@ public class PublishedApiDoclet extends FilterDocletBase {
 						inclusionRequired = 
 							cd.constructors().length > 0 ||
 							cd.methods().length > 0 ||
-							cd.fields().length > 0;
+							cd.fields().length > 0 ||
+							cd.enumConstants().length > 0;
+						if (! inclusionRequired && cd instanceof AnnotationTypeDoc) {
+							AnnotationTypeDoc atd = (AnnotationTypeDoc) cd;
+							inclusionRequired = atd.elements().length > 0;
+						}
 					}
 					if (inclusionRequired) {
 						debug("detected required inclusion of: "+doc.toString());
@@ -722,7 +778,7 @@ public class PublishedApiDoclet extends FilterDocletBase {
 				return (Doc[]) getHDPProxy(array, expect);
 			}
 			Class componentType = expect.getComponentType();
-			List list = new ArrayList(array.length);
+			List<Doc> list = new ArrayList<Doc>(array.length);
 			for (int i = 0; i < array.length; i++) {
 				Doc entry = (Doc) getHDPProxy(array[i], componentType);
 				if (entry != null && ! entry.isIncluded()){
@@ -739,7 +795,7 @@ public class PublishedApiDoclet extends FilterDocletBase {
 		 * 
 		 * @param filter if <code>false</code>, do not filter.
 		 * @return returns <code>false</code>, if either the filter parameter is false or if 
-		 * the filter is globally isabled.
+		 * the filter is globally disabled.
 		 */
 		protected boolean isFilter(boolean filter) {
 			if (! filter)
@@ -757,6 +813,25 @@ public class PublishedApiDoclet extends FilterDocletBase {
 			pad.getErrorReporter().printNotice(position,message);
 		}
 
+	}
+	
+	/**
+	 * Proxy methods for the {@link MethodDoc} instance.
+	 * 
+	 * @author kruis
+	 */
+	public static class MethodDocHandler extends DocHandler {
+		/**
+		 * Create a new instance.
+		 */
+		public MethodDocHandler() {}
+		
+		/*
+		 * @see MethodDoc#overrides(MethodDoc)
+		 */
+		public boolean overrides(MethodDoc meth) {
+			return ((MethodDoc)target).overrides((MethodDoc) unwrap(meth));
+		}
 	}
 	
 	/**
@@ -869,7 +944,35 @@ public class PublishedApiDoclet extends FilterDocletBase {
 		public boolean subclassOf(ClassDoc arg0) {
 			return ((ClassDoc)target).subclassOf((ClassDoc) unwrap(arg0));
 		}
+		
+		/*
+		 * @see ClassDoc#enumConstants()
+		 */
+		public FieldDoc[] enumConstants() {
+			PublishedApiDoclet pad = (PublishedApiDoclet) getHDPStateUserObject();
+			return (FieldDoc[]) filterDocArray(((ClassDoc)target).enumConstants() ,FieldDoc[] .class, ! pad.isDontFilterEnumConstants());
+		}
 	}	
+	
+	/**
+	 * Proxy methods for {@link ClassDoc} instances.
+	 * 
+	 * @author kruis
+	 */
+	public static class AnnotationTypeDocHandler extends ClassDocHandler {
+		/**
+		 * Create a new instance.
+		 */
+		public AnnotationTypeDocHandler() {}
+		
+		/*
+		 * @see AnnotationTypeDoc#elements()
+		 */
+		public AnnotationTypeElementDoc[] elements() {
+			PublishedApiDoclet pad = (PublishedApiDoclet) getHDPStateUserObject();
+			return (AnnotationTypeElementDoc[]) filterDocArray(((AnnotationTypeDoc)target).elements() ,MethodDoc[] .class, !pad.isDontFilterAnnotationElements());
+		}
+	}
 	
 	/**
 	 * Proxy methods for {@link PackageDoc} instances.
@@ -918,5 +1021,15 @@ public class PublishedApiDoclet extends FilterDocletBase {
 		public ClassDoc[] ordinaryClasses() {
 			return (ClassDoc[]) filterDocArray(((PackageDoc)target).ordinaryClasses() ,ClassDoc[] .class, true);
 		}
+						
+		public ClassDoc[] enums() {
+			return (ClassDoc[]) filterDocArray(((PackageDoc)target).enums(), ClassDoc[].class, true);
+		}
+		
+		public AnnotationTypeDoc[] annotationTypes() {
+			return (AnnotationTypeDoc[]) filterDocArray(((PackageDoc)target).annotationTypes(), AnnotationTypeDoc[].class, true);
+		}
+		
 	}
+
 }

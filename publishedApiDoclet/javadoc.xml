@@ -25,7 +25,7 @@
 	
 	<property name="doc" location="doc_published"/>
 	<property name="doc_intern" location="doc_intern"/>
-	<property name="pad.javaversion" value="1.4"/>
+	<property name="pad.javaversion" value="1.5"/>
 	
     <target name="javadoc">
     	<echo message="Just display the help messages"/>

@@ -85,7 +85,7 @@ public class HalfDynamicProxy implements InvocationHandlerWithTarget {
 		 * holds the instance cache. This cache is required in order to build
 		 * just a one proxy for each proxy target.
 		 */
-		private WeakHashMap proxyCache;
+		private WeakHashMap<Object, Object> proxyCache;
 
 		/**
 		 * where to send messages to.
@@ -104,7 +104,7 @@ public class HalfDynamicProxy implements InvocationHandlerWithTarget {
 		public HDPState(Object userState, MessageInterface reciver) {
 			this.userState = userState;
 			this.reciver = reciver != null ? reciver : defaultReciver;
-			this.proxyCache = new WeakHashMap();
+			this.proxyCache = new WeakHashMap<Object, Object>();
 		}
 
 		public void debug(String message) {
@@ -237,7 +237,7 @@ public class HalfDynamicProxy implements InvocationHandlerWithTarget {
 	 * @return the proxy object, or obj itself.
 	 * @see #setProxyClassTable(Class[][])
 	 */
-	public static Object getHDPProxy(Object obj, Class expect, HDPState state) {
+	public static Object getHDPProxy(final Object obj, Class expect, HDPState state) {
 		if (obj == null) {
 			return null;
 		}
@@ -270,7 +270,7 @@ public class HalfDynamicProxy implements InvocationHandlerWithTarget {
 			return obj;
 		}
 		// try to find an existing decorator
-		Map decoratorMap = state.proxyCache;
+		Map<Object, Object> decoratorMap = state.proxyCache;
 		synchronized (decoratorMap) {
 
 			Object decorator = decoratorMap.get(obj);

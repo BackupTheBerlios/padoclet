@@ -239,7 +239,7 @@ public class FilterDocletBase implements MessageInterface {
     	/**
     	 * holds a (sorted) map of all known options
     	 */
-    	private static Map options = new TreeMap();
+    	private static Map<String,AbstractOption> options = new TreeMap<String, AbstractOption>();
 
     	/**
     	 * Register an option.
@@ -341,7 +341,7 @@ public class FilterDocletBase implements MessageInterface {
      */
     protected static String[][] filterOptions(String [][] options) {
         // filter our own options
-        List filteredOptions = new ArrayList();
+        List<String[]> filteredOptions = new ArrayList<String[]>();
         for(int i=0; i<options.length; i++) {
         	if (Option.optionLength(options[i][0]) == 0)
         		filteredOptions.add(options[i]);
@@ -466,8 +466,9 @@ public class FilterDocletBase implements MessageInterface {
 		/* (non-Javadoc)
 		 * @see java.lang.Comparable#compareTo(java.lang.Object)
 		 */
+		@SuppressWarnings("unchecked")
 		public int compareTo(Object o) {
-			return ((Comparable)target).compareTo(unwrap(o));
+			return ((Comparable<Object>)target).compareTo(unwrap(o));
 		}		
 	}
 	

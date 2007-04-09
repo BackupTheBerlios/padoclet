@@ -95,7 +95,7 @@ public class RefCheckDoclet {
 
 	private DocErrorReporter errorReporter;
 
-	private Set warnOn = new HashSet();
+	private Set<String> warnOn = new HashSet<String>();
 
 	/**
 	 * Create a new RefCheckDoclet instance.
@@ -601,7 +601,7 @@ public class RefCheckDoclet {
 		/**
 		 * holds a (sorted) map of all known options
 		 */
-		private static Map options = new TreeMap();
+		private static Map<String, AbstractOption> options = new TreeMap<String, AbstractOption>();
 
 		/**
 		 * Register an option.
