@@ -105,6 +105,8 @@ public class SuperClassExcludedWarnings {
 		/* (non-Javadoc)
 		 * @see de.kruis.padoclet.example.SuperClassExcludedWarnings.IncludedInterface#blub()
 		 */
+		@ExcludedAnnotation(classes={Excluded.class, Object.class})
+		@ExcludedDocumentedAnnotation(classes={Excluded.class, Object.class})
 		@IncludedAnnotation(classes={ExcludedInterface.class, IncludedInterface.class}, 
 				classWithExcludedDefault=ExcludedInterface.class, excludedString="a string")
 		public void blub() {
@@ -183,6 +185,12 @@ public class SuperClassExcludedWarnings {
 	 */
 	@Documented
 	public static @interface ExcludedDocumentedAnnotation {		
+		/**
+		 * An element whose default value is partially excluded.
+		 * 
+		 * @return a class
+		 */
+		Class<? extends Object>[] classes() default { Object.class, Excluded.class, IncludedClass.class };
 	}
 	
 	/**
@@ -192,20 +200,25 @@ public class SuperClassExcludedWarnings {
 	 * That's OK. 
 	 */
 	public static @interface ExcludedAnnotation {
+		/**
+		 * An element whose default value is partially excluded.
+		 * 
+		 * @return a class
+		 */
+		Class<? extends Object>[] classes() default { Object.class, Excluded.class, IncludedClass.class };
 	}
 	
 	/**
 	 * A documented annotation
 	 * 
 	 * @author kruis
-	 * @pad.include sample
 	 */
 	@Documented
 	public static @interface IncludedAnnotation {
 		/**
 		 * An excluded element.
 		 * 
-		 * @return
+		 * @return a string
 		 * @pad.exclude sample
 		 */
 		String excludedString() default "default for excludedString";
@@ -214,6 +227,7 @@ public class SuperClassExcludedWarnings {
 		 * An element whose default value is excluded.
 		 * 
 		 * @return a class
+		 * @pad.include sample
 		 */
 		Class<? extends Object> classWithExcludedDefault() default Excluded.class;
 
@@ -221,6 +235,7 @@ public class SuperClassExcludedWarnings {
 		 * An element whose default value is partially excluded.
 		 * 
 		 * @return a class
+		 * @pad.include sample
 		 */
 		Class<? extends Object>[] classes() default { Object.class, Excluded.class, IncludedClass.class };
 	}

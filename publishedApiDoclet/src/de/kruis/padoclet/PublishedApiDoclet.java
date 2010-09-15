@@ -515,7 +515,7 @@ public class PublishedApiDoclet extends FilterDocletBase {
 				new Class[] { MethodDocHandler.class, MethodDoc.class},
 				new Class[] { DocHandler.class, Doc.class},
 				new Class[] { HandlerBase.class, AnnotationValue.class },
-				new Class[] { HandlerBase.class, AnnotationDesc.class },
+				new Class[] { AnnotationDescHandler.class, AnnotationDesc.class },
 				new Class[] { HandlerBase.class, AnnotationDesc.ElementValuePair.class },
 				new Class[] { ComparableHandler.class, Tag.class, Comparable.class},
 				new Class[] { HandlerBase.class, Tag.class},
@@ -993,6 +993,42 @@ public class PublishedApiDoclet extends FilterDocletBase {
 		}
 	}
 	
+	/**
+	 * Proxy methods for {@link AnnotationDesc} instances.
+	 * 
+	 * @author kruis
+	 */
+	public static class AnnotationDescHandler extends HandlerBase {
+		/**
+		 * Create a new instance.
+		 */
+		public AnnotationDescHandler() {}
+		
+		/*
+		 * @see AnnotationDesc#elementValues()
+		 */
+		public AnnotationDesc.ElementValuePair[] elementValues() {
+			PublishedApiDoclet pad = (PublishedApiDoclet) getHDPStateUserObject();
+			AnnotationDesc.ElementValuePair[] array = 
+				((AnnotationDesc)target).elementValues();
+			
+			if (pad.isDontFilterAnnotationElements()) {
+				return (AnnotationDesc.ElementValuePair[]) getHDPProxy(array, AnnotationDesc.ElementValuePair[].class);
+			}
+			List<AnnotationDesc.ElementValuePair> list = new ArrayList<AnnotationDesc.ElementValuePair>(array.length);
+			for (int i = 0; i < array.length; i++) {
+				AnnotationDesc.ElementValuePair pair = (AnnotationDesc.ElementValuePair) getHDPProxy(array[i], null);
+				Doc entry = pair.element();
+				if (entry != null && ! entry.isIncluded()){
+					//debug("Array Excluding: "+entry.getClass().getName()+ " " + entry);
+					continue;
+				}
+				list.add(pair);
+			}
+			return list.toArray((AnnotationDesc.ElementValuePair[]) Array.newInstance(AnnotationDesc.ElementValuePair.class,list.size()));
+		}
+	}
+		
 	/**
 	 * Proxy methods for {@link PackageDoc} instances.
 	 * 

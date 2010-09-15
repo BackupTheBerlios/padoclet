@@ -97,6 +97,8 @@ public class RefCheckDoclet {
 
 	public static final String WARNING_SUPER_CLASS = "superClass";
 	
+	public static final String WARNING_ANNOTATION_ELEMENT = "annotationElementValue";
+
 	public static final String WARNING_ANNOTATION_DEFAULT_VALUE = "annotationDefaultValue";
 
 	public static final String WARNING_ANNOTATION = "publicAnnotation";
@@ -165,9 +167,9 @@ public class RefCheckDoclet {
 		ElementValuePair[] elementValues = annotationDesc.elementValues();
 		for (int i=0; i < elementValues.length; i++) {
 			// check the type element
-			check(elementValues[i].element());
+			checkReference(doc, elementValues[i].element(), warning);
 			// check the value
-			checkReference(doc, elementValues[i].value(), warning);
+			checkReference(doc, elementValues[i].value(), WARNING_ANNOTATION_ELEMENT);
 		}
 	}
 	
@@ -580,6 +582,10 @@ public class RefCheckDoclet {
 								+ "   \""
 								+ RefCheckDoclet.WARNING_PRIVATE_ANNOTATION
 								+ "\"      - a private (without \"@Documented\") annotation is undocumented"
+								+ Option.LI
+								+ "   \""
+								+ RefCheckDoclet.WARNING_ANNOTATION_ELEMENT
+								+ "\" - the value of an annotation element is undocumented"
 								+ Option.LI
 								+ "   \""
 								+ RefCheckDoclet.WARNING_ANNOTATION_DEFAULT_VALUE
