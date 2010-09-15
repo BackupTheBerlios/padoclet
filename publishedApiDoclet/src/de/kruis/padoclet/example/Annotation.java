@@ -1,5 +1,3 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-<!-- 
 /*
  *  PublishedApiDoclet - a filter proxy for any javadoc doclet
  *  
@@ -19,14 +17,35 @@
  *  License along with this library; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
  */
--->
-<html>
-<head>
-</head>
-<body>
-<p>This package contains utility classes used to build PublishedApiDoclet.</p>
 
-@pad.include src
-@pad.exclude sample9
-</body>
-</html>
+package de.kruis.padoclet.example;
+
+import java.lang.annotation.Documented;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+
+/**
+ * This annotation is documented
+ * 
+ * @author kruis
+ *
+ */
+
+@Documented
+@Retention(RetentionPolicy.RUNTIME)
+public @interface Annotation {
+	/**
+	 * This is a documented string property.
+	 * 
+	 * @return the string value
+	 */
+	String string() default "the default string";
+	
+	/**
+	 * This is an undocumented string property.
+	 * 
+	 * @return the undocumented value.
+	 * @pad.exclude sample
+	 */
+	String undocumented();
+}

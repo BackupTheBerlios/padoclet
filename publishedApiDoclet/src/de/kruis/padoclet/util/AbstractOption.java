@@ -1,7 +1,7 @@
 /*
  *  PublishedApiDoclet - a filter proxy for any javadoc doclet
  *  
- *  Copyright (C) 2007  Anselm Kruis <a.kruis@science-computing.de>
+ *  Copyright (C) 2007, 2010  Anselm Kruis <a.kruis@science-computing.de>
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -34,7 +34,7 @@ import java.util.StringTokenizer;
  * Option handling for doclets.
  * 
  * This class holds static methods and data about the options given 
- * to the doclet. Additionally instances oft the class represent
+ * to the doclet. Additionally instances of the class represent
  * single options.
  * 
  * @author kruis
@@ -167,8 +167,8 @@ public abstract class AbstractOption {
 	 * @return the option object. Returns <code>null</code>, if no option with the given  
 	 * name was registered. 
 	 */
-	protected static AbstractOption get(String name, Map options) {
-		return (AbstractOption) options.get(Introspector.decapitalize(name));
+	protected static AbstractOption get(String name, Map<String, AbstractOption> options) {
+		return options.get(Introspector.decapitalize(name));
 	}
 	/**
 	 * Get a string made from the descriptions of all registered options.
@@ -176,9 +176,9 @@ public abstract class AbstractOption {
 	 * 
 	 * @return the compiled descriptions.
 	 */
-	protected static String getDescriptions(Map options) {
+	protected static String getDescriptions(Map<String, AbstractOption> options) {
 		StringBuffer sb = new StringBuffer();
-		Iterator iterator = options.values().iterator();
+		Iterator<AbstractOption> iterator = options.values().iterator();
 		while(iterator.hasNext()) {
 			sb.append(iterator.next()).append(LF);
 		}
@@ -192,11 +192,11 @@ public abstract class AbstractOption {
 	 * @return a set containing all tag names, that is the values of all
 	 * options where the property <code>isTag</code> is set.
 	 */
-	protected static Set<String> getTags(Map options) {
+	protected static Set<String> getTags(Map<String, AbstractOption> options) {
 		Set<String> set = new HashSet<String>();
-		Iterator iterator = options.values().iterator();
+		Iterator<AbstractOption> iterator = options.values().iterator();
 		while(iterator.hasNext()) {
-			AbstractOption o = (AbstractOption) iterator.next();
+			AbstractOption o = iterator.next();
 			if(o.isTag) {
 				StringTokenizer tokenizer = new StringTokenizer(o.value,TAG_DELIMITER);
 				while(tokenizer.hasMoreTokens()) {
@@ -213,17 +213,17 @@ public abstract class AbstractOption {
 	 * @param options the options map
 	 * @return the option or <code>null</code>, if no matching option exists.
 	 */
-	private static AbstractOption getWithPrefix(String prefixedName, Map options) {
+	private static AbstractOption getWithPrefix(String prefixedName, Map<String, AbstractOption> options) {
 		if (prefixedName == null)
 			return null;
 		
 		// This is a fairly slow implementation, but I don't consider option 
 		// processing an very important issue.
-		Iterator iterator = options.entrySet().iterator();
+		Iterator<Map.Entry<String, AbstractOption>> iterator = options.entrySet().iterator();
 		while(iterator.hasNext()) {
-			Map.Entry entry = (Map.Entry) iterator.next();
-			String name = (String) entry.getKey();
-			AbstractOption o = (AbstractOption)entry.getValue();
+			Map.Entry<String, AbstractOption> entry = iterator.next();
+			String name = entry.getKey();
+			AbstractOption o = entry.getValue();
 			if (prefixedName.startsWith(o.namePrefix) 
 					&& Introspector.decapitalize(prefixedName.substring(o.namePrefix.length())).equals(name))
 				return o;
@@ -239,7 +239,7 @@ public abstract class AbstractOption {
 	 * @param options the options map
 	 * @return 1, if the option takes no parameters, 2, if the option takes a parameter. If the option is unknown, return 0.
 	 */
-	protected static int optionLength(String name, Map options) {
+	protected static int optionLength(String name, Map<String, AbstractOption> options) {
 		AbstractOption option = getWithPrefix(name, options);
 		if (option == null)
 			return 0;
@@ -253,7 +253,7 @@ public abstract class AbstractOption {
 	 * @see com.sun.javadoc.Doclet#validOptions(java.lang.String[][], com.sun.javadoc.DocErrorReporter)
 	 * @see com.sun.javadoc.RootDoc#options()
 	 */
-	protected static void initOptions(String [][]options, Map optionsMap) {
+	protected static void initOptions(String [][]options, Map<String, AbstractOption> optionsMap) {
 		for(int i=0;i<options.length;i++) {
 	   		AbstractOption option = getWithPrefix(options[i][0], optionsMap);
 	   	    if (option == null)
@@ -278,7 +278,7 @@ public abstract class AbstractOption {
 	 * @param options the options map
 	 * @throws Throwable
 	 */
-	protected static void initJavaBeanProperties(Object bean, Map options) throws Throwable {
+	protected static void initJavaBeanProperties(Object bean, Map<String, AbstractOption> options) throws Throwable {
 		PropertyDescriptor[] pd = 
 			Introspector.getBeanInfo(bean.getClass()).getPropertyDescriptors();
 		for(int i=0;i<pd.length;i++) {

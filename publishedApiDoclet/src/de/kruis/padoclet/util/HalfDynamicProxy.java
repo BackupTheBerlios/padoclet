@@ -1,7 +1,7 @@
 /*
  *  PublishedApiDoclet - a filter proxy for any javadoc doclet
  *  
- *  Copyright (C) 2006  Anselm Kruis <a.kruis@science-computing.de>
+ *  Copyright (C) 2006, 2010  Anselm Kruis <a.kruis@science-computing.de>
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -107,20 +107,22 @@ public class HalfDynamicProxy implements InvocationHandlerWithTarget {
 			this.proxyCache = new WeakHashMap<Object, Object>();
 		}
 
+		@SuppressWarnings("unused")
 		public void debug(String message) {
 			this.reciver.emitMessage(message, MessageInterface.PRIORITY_DEBUG);
 		}
 
+		@SuppressWarnings("unused")
 		public void error(String message) {
 			this.reciver.emitMessage(message, MessageInterface.PRIORITY_ERROR);
 		}
 	}
 
 	/**
-	 * Holds a mapping table, that determinates the invacation handler class for
+	 * Holds a mapping table, that determinates the invocation handler class for
 	 * a proxy target class.
 	 */
-	private static Class[][] proxyClassTable;
+	private static Class<?>[][] proxyClassTable;
 
 	/**
 	 * holds the target.
@@ -150,7 +152,7 @@ public class HalfDynamicProxy implements InvocationHandlerWithTarget {
 	/**
 	 * @return Returns the proxyClassTable.
 	 */
-	public static Class[][] getProxyClassTable() {
+	public static Class<?>[][] getProxyClassTable() {
 		return proxyClassTable;
 	}
 
@@ -168,7 +170,7 @@ public class HalfDynamicProxy implements InvocationHandlerWithTarget {
 	 * @param proxyClassTable
 	 *            The proxyClassTable to set.
 	 */
-	public static void setProxyClassTable(Class[][] proxyClassTable) {
+	public static void setProxyClassTable(Class<?>[][] proxyClassTable) {
 		HalfDynamicProxy.proxyClassTable = proxyClassTable;
 	}
 
@@ -207,16 +209,17 @@ public class HalfDynamicProxy implements InvocationHandlerWithTarget {
 	/**
 	 * Get the proxy for an object using the same state as this proxy uses.
 	 * 
-	 *  If obj is an array, this method 
+	 * If <i>obj</i> is an array, this method 
 	 * is called recursively on each element of the array.
 	 * 
 	 * @param obj the object to create a proxy for
-	 * @param expect the expected type of the object. This is used,
-	 * if <code>obj</code> is an array.
+	 * @param expect the expected type of the object,
+	 * if <code>obj</code> is an array. If expect is {@link java.lang.Object} or 
+	 * <code>null</code>, then the type of obj is used instead of expect.
 	 * @return the proxy object, or obj itself.
 	 * @see #getHDPProxy(Object, Class, HalfDynamicProxy.HDPState)
 	 */
-	protected Object getHDPProxy(Object obj, Class expect) {
+	protected Object getHDPProxy(Object obj, Class<?> expect) {
 		return getHDPProxy(obj, expect, state);
 	}
 
@@ -231,13 +234,14 @@ public class HalfDynamicProxy implements InvocationHandlerWithTarget {
 	 * {@link #proxyClassTable} (see {@link #setProxyClassTable(Class[][])}). 
 	 *
 	 * @param obj the object to create a proxy for.
-	 * @param expect the expected type of the object. This is used,
-	 * if <code>obj</code> is an array.
+	 * @param expect the expected type of the object,
+	 * if <code>obj</code> is an array. If expect is {@link java.lang.Object} or 
+	 * <code>null</code>, then the type of obj is used instead of expect.
 	 * @param state the state object for the proxy
 	 * @return the proxy object, or obj itself.
 	 * @see #setProxyClassTable(Class[][])
 	 */
-	public static Object getHDPProxy(final Object obj, Class expect, HDPState state) {
+	public static Object getHDPProxy(final Object obj, Class<?> expect, HDPState state) {
 		if (obj == null) {
 			return null;
 		}
@@ -245,7 +249,12 @@ public class HalfDynamicProxy implements InvocationHandlerWithTarget {
 		// array handling
 		if (obj instanceof Object[]) {
 			Object[] arr = (Object[]) obj;
-			Class componentType = expect.getComponentType();
+			if (null == expect || Object.class == expect) {
+				// no explicit specification, use the type of the
+				// array
+				expect = obj.getClass();
+			}
+			Class<?> componentType = expect.getComponentType();
 			boolean isProxy = true;
 			for (int i = 0; i < arr.length; i++) {
 				if (arr[i] != getHDPProxy(arr[i], componentType, state))
@@ -261,7 +270,7 @@ public class HalfDynamicProxy implements InvocationHandlerWithTarget {
 			return arr2;
 		}
 
-		Class cls = obj.getClass();
+		Class<?> cls = obj.getClass();
 		if (Proxy.isProxyClass(cls)) {
 			// is already a proxy
 			return obj;
@@ -278,7 +287,7 @@ public class HalfDynamicProxy implements InvocationHandlerWithTarget {
 				return decorator;
 			}
 			// find the right class
-			Class invocationHandlerClass = null;
+			Class<?> invocationHandlerClass = null;
 			for (int i = 0; i < proxyClassTable.length; i++) {
 				// assert, that the row is valid
 				if (proxyClassTable[i] == null

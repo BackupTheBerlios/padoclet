@@ -1,7 +1,7 @@
 /*
  *  PublishedApiDoclet - a filter proxy for any javadoc doclet
  *  
- *  Copyright (C) 2007  Anselm Kruis <a.kruis@science-computing.de>
+ *  Copyright (C) 2007, 2010  Anselm Kruis <a.kruis@science-computing.de>
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -44,6 +44,7 @@ import com.sun.javadoc.ConstructorDoc;
 import com.sun.javadoc.Doc;
 import com.sun.javadoc.DocErrorReporter;
 import com.sun.javadoc.FieldDoc;
+import com.sun.javadoc.LanguageVersion;
 import com.sun.javadoc.MethodDoc;
 import com.sun.javadoc.PackageDoc;
 import com.sun.javadoc.Parameter;
@@ -58,7 +59,7 @@ import de.kruis.padoclet.util.AbstractOption;
 import de.kruis.padoclet.util.HalfDynamicProxy;
 
 /**
- * This class is a java 1.4 doclet, that is used as a filter between the javadoc
+ * This class is a java 1.5 doclet, that is used as a filter between the javadoc
  * framework and another doclet, that produces some output.
  * 
  * The PublishedApiDoclet limits the packages, classes, fields, methods seen by
@@ -391,6 +392,22 @@ public class PublishedApiDoclet extends FilterDocletBase {
 		   	Option.register(new Option(option.name, "", option.isTag, option.description));
     	}
      
+   	/**
+   	 * Implements the doclet languageVersion method. 
+   	 * 
+   	 * This version of PA doclet only supports {@link LanguageVersion#JAVA_1_5}.
+   	 * 
+   	 * @return the supported language version
+   	 */
+   	public static LanguageVersion languageVersion() {
+   		LanguageVersion lv = languageVersionHelper();
+   		if (lv != LanguageVersion.JAVA_1_5) {
+   			throw new RuntimeException("This version of "+PublishedApiDoclet.class.getName()+
+   					" only supports language version "+LanguageVersion.JAVA_1_5+" but the "+
+   					"delegate doclet uses language version "+lv);
+   		}
+   		return lv;
+   	}
 
     /**
      * Implements the doclet validOptions method
@@ -575,7 +592,7 @@ public class PublishedApiDoclet extends FilterDocletBase {
 				// the result is already known. Nothing to do.
 				return isIncluded;
 			
-			// we probably do not need this check, but during development it prooved 
+			// we probably do not need this check, but during development it proved 
 			// to be useful. 
 			if (isCheckStarted)
 				throw new IllegalStateException("unexpected recursion detected");
@@ -773,11 +790,11 @@ public class PublishedApiDoclet extends FilterDocletBase {
 		 * @return a Doc[], containing HD-Proxies for the possibly filtered entries 
 		 * of the given array.
 		 */
-		protected Doc[] filterDocArray(Doc[] array, Class expect, boolean doFilter) {
+		protected Doc[] filterDocArray(Doc[] array, Class<? extends Doc[]> expect, boolean doFilter) {
 			if (!doFilter) {
 				return (Doc[]) getHDPProxy(array, expect);
 			}
-			Class componentType = expect.getComponentType();
+			Class<?> componentType = expect.getComponentType();
 			List<Doc> list = new ArrayList<Doc>(array.length);
 			for (int i = 0; i < array.length; i++) {
 				Doc entry = (Doc) getHDPProxy(array[i], componentType);
@@ -833,7 +850,7 @@ public class PublishedApiDoclet extends FilterDocletBase {
 			return ((MethodDoc)target).overrides((MethodDoc) unwrap(meth));
 		}
 	}
-	
+
 	/**
 	 * Proxy methods for the {@link RootDoc} instance.
 	 * 
@@ -970,7 +987,9 @@ public class PublishedApiDoclet extends FilterDocletBase {
 		 */
 		public AnnotationTypeElementDoc[] elements() {
 			PublishedApiDoclet pad = (PublishedApiDoclet) getHDPStateUserObject();
-			return (AnnotationTypeElementDoc[]) filterDocArray(((AnnotationTypeDoc)target).elements() ,MethodDoc[] .class, !pad.isDontFilterAnnotationElements());
+			return (AnnotationTypeElementDoc[]) filterDocArray(
+					((AnnotationTypeDoc) target).elements(), AnnotationTypeElementDoc[].class,
+					!pad.isDontFilterAnnotationElements());
 		}
 	}
 	

@@ -1,7 +1,7 @@
 /*
  *  PublishedApiDoclet - a filter proxy for any javadoc doclet
  *  
- *  Copyright (C) 2007  Anselm Kruis <a.kruis@science-computing.de>
+ *  Copyright (C) 2007, 2010  Anselm Kruis <a.kruis@science-computing.de>
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -26,12 +26,18 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
 
+import com.sun.javadoc.AnnotationDesc;
+import com.sun.javadoc.AnnotationDesc.ElementValuePair;
+import com.sun.javadoc.AnnotationTypeDoc;
+import com.sun.javadoc.AnnotationTypeElementDoc;
+import com.sun.javadoc.AnnotationValue;
 import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.ConstructorDoc;
 import com.sun.javadoc.Doc;
 import com.sun.javadoc.DocErrorReporter;
 import com.sun.javadoc.ExecutableMemberDoc;
 import com.sun.javadoc.FieldDoc;
+import com.sun.javadoc.LanguageVersion;
 import com.sun.javadoc.MethodDoc;
 import com.sun.javadoc.PackageDoc;
 import com.sun.javadoc.Parameter;
@@ -52,7 +58,7 @@ import de.kruis.padoclet.util.AbstractOption;
  * (i.e. "see" or "link"-tags) to an undocumented private method. Usually you do
  * not want such a reference, because the reader of the of your documentation
  * can't make any use of it. This doclet helps you to avoid such dangling
- * references. It gives you a warning, if a reference points to an undocumented
+ * references. It emits a warning, if a reference points to an undocumented
  * item, for witch the source is available. (You don't want a warning for a
  * reference to an undocumented item without source-code, like
  * <code>java.lang.Object</code>.)
@@ -90,6 +96,12 @@ public class RefCheckDoclet {
 	public static final String WARNING_SEE_OR_LINK_REFERENCE = "seeOrLinkReference";
 
 	public static final String WARNING_SUPER_CLASS = "superClass";
+	
+	public static final String WARNING_ANNOTATION_DEFAULT_VALUE = "annotationDefaultValue";
+
+	public static final String WARNING_ANNOTATION = "publicAnnotation";
+
+	public static final String WARNING_PRIVATE_ANNOTATION = "privateAnnotation";
 
 	public static final String WARNING_ALL = "all";
 
@@ -115,6 +127,9 @@ public class RefCheckDoclet {
 	 *            the warning constant
 	 */
 	private void checkReference(Doc doc, Type type, String warning) {
+		if (null == type) {
+			return;
+		}
 		checkReference(doc, type.asClassDoc(), warning);
 	}
 
@@ -131,6 +146,59 @@ public class RefCheckDoclet {
 	private void checkReference(Doc doc, ClassDoc classDoc, String warning) {
 		checkReference(doc, (Doc) classDoc, warning);
 	}
+
+	
+	/**
+	 * Check an AnnotationDesc-Interface.
+	 * 
+	 * @param doc
+	 *            the containing Doc-Interface
+	 * @param annotationDesc
+	 *            the AnnotationDesc to be checked
+	 * @param warning
+	 *            the warning constant
+	 */
+	private void checkReference(Doc doc, AnnotationDesc annotationDesc, String warning) {
+		// check the type
+		checkReference(doc, annotationDesc.annotationType(), warning);
+		// check the elements
+		ElementValuePair[] elementValues = annotationDesc.elementValues();
+		for (int i=0; i < elementValues.length; i++) {
+			// check the type element
+			check(elementValues[i].element());
+			// check the value
+			checkReference(doc, elementValues[i].value(), warning);
+		}
+	}
+	
+	/**
+	 * Check an AnnotationValue-Interface. 
+	 * 
+	 * @param doc
+	 *            the containing Doc-Interface
+	 * @param annotationValue the value.
+	 * @param warning
+	 *            the warning constant
+	 */
+	private void checkReference(Doc doc, AnnotationValue annotationValue, String warning) {
+		if (null == annotationValue) {
+			return;
+		}
+		Object value = annotationValue.value();
+		if (value instanceof Type) {
+			checkReference(doc, (Type) value, warning);			
+		} else if (value instanceof FieldDoc) {
+			checkReference(doc, (FieldDoc) value, warning);			
+		} else if (value instanceof AnnotationDesc) {
+			checkReference(doc, (AnnotationDesc) value, warning);			
+		} else if (value instanceof AnnotationValue[]) {
+			AnnotationValue[] values = (AnnotationValue[])value;
+			for (int i = 0; i < values.length; i++) {
+				checkReference(doc, values[i], warning);
+			}
+		} 
+	}
+	
 
 	/**
 	 * Check a Doc-Interface.
@@ -194,6 +262,7 @@ public class RefCheckDoclet {
 			if (!packages[i].isIncluded())
 				continue;
 			checkDoc(packages[i]);
+			checkAnnotations(packages[i], packages[i].annotations());
 		}
 		return true;
 	}
@@ -209,6 +278,23 @@ public class RefCheckDoclet {
 		checkTags(doc, doc.seeTags());
 	}
 
+	/**
+	 * Check an array of annotations
+	 */
+	private void checkAnnotations(Doc doc, AnnotationDesc[] annotations) {
+		for (int i=0; i < annotations.length; i++) {
+			AnnotationDesc annotationDesc = annotations[i];
+			boolean isDocumented = false;
+			for (AnnotationDesc a : annotationDesc.annotationType().annotations()) {
+				if (java.lang.annotation.Documented.class.getName().equals(a.annotationType().qualifiedName())) {
+					isDocumented = true;
+				}
+			}
+			checkReference(doc, annotations[i], isDocumented ? WARNING_ANNOTATION : WARNING_PRIVATE_ANNOTATION);
+		}
+	}
+	
+	
 	/**
 	 * Check an array of tags.
 	 * 
@@ -254,7 +340,7 @@ public class RefCheckDoclet {
 	private void check(ClassDoc doc) {
 		checkDoc(doc);
 		// check superclass
-		checkReference(doc, doc.superclass(), WARNING_SUPER_CLASS);
+		checkReference(doc, doc.superclassType(), WARNING_SUPER_CLASS);
 		// check containing class
 		checkReference(doc, doc.containingClass(),
 				RefCheckDoclet.WARNING_CONTAINING_CLASS);
@@ -262,7 +348,7 @@ public class RefCheckDoclet {
 		checkReference(doc, doc.containingPackage(),
 				RefCheckDoclet.WARNING_CONTAINING_PACKAGE);
 		// check interfaces
-		ClassDoc[] interfaces = doc.interfaces();
+		Type[] interfaces = doc.interfaceTypes();
 		for (int i = 0; i < interfaces.length; i++) {
 			checkReference(doc, interfaces[i],
 					RefCheckDoclet.WARNING_IMPLEMENTED_INTERFACE);
@@ -273,8 +359,16 @@ public class RefCheckDoclet {
 			checkReference(doc, nestedClasses[i],
 					RefCheckDoclet.WARNING_NESTED_CLASS);
 		}
+		// check annotations
+		checkAnnotations(doc, doc.annotations());
+		
 		// check fields
 		FieldDoc[] fields = doc.fields();
+		for (int i = 0; i < fields.length; i++) {
+			check(fields[i]);
+		}
+		// check enum constants
+		fields = doc.enumConstants();
 		for (int i = 0; i < fields.length; i++) {
 			check(fields[i]);
 		}
@@ -288,8 +382,28 @@ public class RefCheckDoclet {
 		for (int i = 0; i < methods.length; i++) {
 			check(methods[i]);
 		}
+		
+		if (doc instanceof AnnotationTypeDoc) {
+			AnnotationTypeDoc annotation = (AnnotationTypeDoc) doc;
+			AnnotationTypeElementDoc[] elements = annotation.elements();
+			for (int i = 0; i < elements.length; i++) {
+				check(elements[i]);
+			}		
+		}
+	}
+	
+	/**
+	 * Check an annotation type element doc.
+	 * 
+	 * @param elementDoc the type element doc.
+	 */
+	private void check(AnnotationTypeElementDoc elementDoc) {
+		check((MethodDoc) elementDoc);
+		// check default value
+		checkReference(elementDoc, elementDoc.defaultValue(), WARNING_ANNOTATION_DEFAULT_VALUE);
 	}
 
+	
 	/**
 	 * Check a method doc.
 	 * 
@@ -330,6 +444,8 @@ public class RefCheckDoclet {
 
 		checkTags(emember, emember.paramTags());
 		checkTags(emember, emember.throwsTags());
+		
+		checkAnnotations(emember, emember.annotations());
 	}
 
 	/**
@@ -341,6 +457,7 @@ public class RefCheckDoclet {
 	private void check(FieldDoc field) {
 		checkDoc(field);
 		checkReference(field, field.type(), RefCheckDoclet.WARNING_FIELD_TYPE);
+		checkAnnotations(field, field.annotations());
 	}
 
 	/**
@@ -406,7 +523,7 @@ public class RefCheckDoclet {
 				.register(new Option(
 						RefCheckDoclet.OPTION_WARN_ON,
 						RefCheckDoclet.WARNING_ALL + ",-"
-								+ WARNING_NESTED_CLASS,
+								+ WARNING_NESTED_CLASS + ",-" + WARNING_PRIVATE_ANNOTATION,
 						false,
 						"A comma separated list of conditions, that will cause a warning."
 								+ Option.LI
@@ -414,50 +531,63 @@ public class RefCheckDoclet {
 								+ Option.LI
 								+ "   \""
 								+ RefCheckDoclet.WARNING_SUPER_CLASS
-								+ "\"           - the super class of an included class is not documented"
+								+ "\"             - the super class of an included class is not documented"
 								+ Option.LI
 								+ "   \""
 								+ RefCheckDoclet.WARNING_FIELD_TYPE
-								+ "\"            - a field type is undocumented"
+								+ "\"              - a field type is undocumented"
 								+ Option.LI
 								+ "   \""
 								+ RefCheckDoclet.WARNING_THROWN_CLASS
-								+ "\"          - a thrown exception or error is undocumented"
+								+ "\"            - a thrown exception or error is undocumented"
 								+ Option.LI
 								+ "   \""
 								+ RefCheckDoclet.WARNING_PARAMETER_TYPE
-								+ "\"        - a parameter type is undocumented"
+								+ "\"          - a parameter type is undocumented"
 								+ Option.LI
 								+ "   \""
 								+ RefCheckDoclet.WARNING_RETURN_TYPE
-								+ "\"           - a return type is undocumented"
+								+ "\"             - a return type is undocumented"
 								+ Option.LI
 								+ "   \""
 								+ RefCheckDoclet.WARNING_OVERRIDDEN_METHOD
-								+ "\"     - an overridden method is undocumented"
+								+ "\"       - an overridden method is undocumented"
 								+ Option.LI
 								+ "   \""
 								+ RefCheckDoclet.WARNING_NESTED_CLASS
-								+ "\"          - a nested class is undocumented"
+								+ "\"            - a nested class is undocumented"
 								+ Option.LI
 								+ "   \""
 								+ RefCheckDoclet.WARNING_IMPLEMENTED_INTERFACE
-								+ "\" - an implemented interface is undocumented"
+								+ "\"   - an implemented interface is undocumented"
 								+ Option.LI
 								+ "   \""
 								+ RefCheckDoclet.WARNING_CONTAINING_PACKAGE
-								+ "\"    - the containing package is undocumented"
+								+ "\"      - the containing package is undocumented"
 								+ Option.LI
 								+ "   \""
 								+ RefCheckDoclet.WARNING_CONTAINING_CLASS
-								+ "\"      - the containing class of a nested class is undocumented"
+								+ "\"        - the containing class of a nested class is undocumented"
 								+ Option.LI
 								+ "   \""
 								+ RefCheckDoclet.WARNING_SEE_OR_LINK_REFERENCE
-								+ "\"   - a @see or @link tag points to an undocumented item"
-								+ Option.LI + "   \""
+								+ "\"     - a @see or @link tag points to an undocumented item"
+								+ Option.LI
+								+ "   \""
+								+ RefCheckDoclet.WARNING_ANNOTATION
+								+ "\"       - a public (with \"@Documented\") annotation is undocumented"
+								+ Option.LI
+								+ "   \""
+								+ RefCheckDoclet.WARNING_PRIVATE_ANNOTATION
+								+ "\"      - a private (without \"@Documented\") annotation is undocumented"
+								+ Option.LI
+								+ "   \""
+								+ RefCheckDoclet.WARNING_ANNOTATION_DEFAULT_VALUE
+								+ "\" - the default value of an annotation element is undocumented"
+								+ Option.LI
+								+ "   \""
 								+ RefCheckDoclet.WARNING_ALL
-								+ "\"                  - all of the above"));
+								+ "\"                    - all of the above"));
 	}
 
 	/**
@@ -537,6 +667,17 @@ public class RefCheckDoclet {
 		rcd.setErrorReporter(root);
 		return rcd.check(root);
 	}
+	
+   	/**
+   	 * Implements the doclet languageVersion method. 
+   	 * 
+   	 * This version of RefCheckDoclet only supports {@link LanguageVersion#JAVA_1_5}.
+   	 * 
+   	 * @return the supported language version
+   	 */
+   	public static LanguageVersion languageVersion() {
+   		return LanguageVersion.JAVA_1_5;
+   	}
 
 	/**
 	 * A main method.
@@ -643,7 +784,7 @@ public class RefCheckDoclet {
 		 * @return a set containing all tag names, that is the values of all
 		 *         options where the property <code>isTag</code> is set.
 		 */
-		public static Set getTags() {
+		public static Set<String> getTags() {
 			return getTags(options);
 		}
 

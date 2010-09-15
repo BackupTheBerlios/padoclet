@@ -1,7 +1,7 @@
 /*
  *  PublishedApiDoclet - a filter proxy for any javadoc doclet
  *  
- *  Copyright (C) 2006  Anselm Kruis <a.kruis@science-computing.de>
+ *  Copyright (C) 2006, 2010  Anselm Kruis <a.kruis@science-computing.de>
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -38,7 +38,7 @@ public interface InvocationHandlerWithTarget extends InvocationHandler {
 	 * Initialize this invocation handler.
 	 * 
 	 * @param target object, for which this object is a proxy.
-	 * @param state an arbitrary object used to hold starte information
+	 * @param state an arbitrary object used to hold state information
 	 */
 	void setupInvocationHandler(Object target, Object state);
 	

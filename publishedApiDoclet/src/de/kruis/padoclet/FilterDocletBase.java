@@ -1,7 +1,7 @@
 /*
  *  PublishedApiDoclet - a filter proxy for any javadoc doclet
  *  
- *  Copyright (C) 2007  Anselm Kruis <a.kruis@science-computing.de>
+ *  Copyright (C) 2007,2010  Anselm Kruis <a.kruis@science-computing.de>
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -39,6 +39,7 @@ import java.util.TreeMap;
 
 import com.sun.javadoc.DocErrorReporter;
 import com.sun.javadoc.Doclet;
+import com.sun.javadoc.LanguageVersion;
 import com.sun.javadoc.RootDoc;
 
 import de.kruis.padoclet.util.AbstractOption;
@@ -83,14 +84,14 @@ public class FilterDocletBase implements MessageInterface {
      */
     private static class DH {
 		/**
-         * holds the delegat doclet
+         * holds the delegate doclet
          */
-        public static final Class delegateDoclet;
+        public static final Class<?> delegateDoclet;
         static {
             String classname = System.getProperty(PAD_DELEGATE_DOCLET_SYSTEM_PROPERTY);
             if (classname == null || classname.length() == 0)
             	classname = "com.sun.tools.doclets.standard.Standard";
-            Class clazz = null;
+            Class<?> clazz = null;
             try {
                 clazz = Thread.currentThread().getContextClassLoader().loadClass(classname);
             } catch (Exception e) {
@@ -161,14 +162,14 @@ public class FilterDocletBase implements MessageInterface {
             int modifiers = docletmethods[i].getModifiers();
             if (! (Modifier.isStatic(modifiers) && Modifier.isPublic(modifiers)))
                 continue;
-            Class[] partypes = docletmethods[i].getParameterTypes();
+            Class<?>[] partypes = docletmethods[i].getParameterTypes();
             if (partypes.length != (par!=null ? par.length : 0)) 
                 continue;
             for(int j=0;j<partypes.length;j++) {
                 if (! (par[j] == null || partypes[j].isInstance(par[j]))) 
                     continue;
             }
-            // OK, we hav the right method signature
+            // OK, we have the right method signature
             Method m = DH.delegateDoclet.getMethod(name, partypes);
             modifiers = m.getModifiers();
             if (! (Modifier.isStatic(modifiers) && Modifier.isPublic(modifiers)))
@@ -278,7 +279,7 @@ public class FilterDocletBase implements MessageInterface {
     	 * @return a set containing all tag names, that is the values of all
     	 * options where the property <code>isTag</code> is set.
     	 */
-    	public static Set getTags() {
+    	public static Set<String> getTags() {
     		return getTags(options);
     	}
     	
@@ -348,7 +349,7 @@ public class FilterDocletBase implements MessageInterface {
         }
         if((! Option.get("NoTagOptions").isSet()) && optionLengthHelper("-tag",FilterDocletBase.class.getName()) == 2) {
         	// the -tag option of the standard doclet seems to be supported
-        	Iterator iterator = Option.getTags().iterator();
+        	Iterator<String> iterator = Option.getTags().iterator();
         	while(iterator.hasNext()) {
         		filteredOptions.add(new String[] {"-tag", iterator.next()+":X"});
         	}
@@ -412,6 +413,20 @@ public class FilterDocletBase implements MessageInterface {
         return length;
     }
 
+	/**
+	 * Helper method used to implement the doclet <code>languageVersion</code>
+	 * method.
+	 * 
+	 * See {@link PublishedApiDoclet#languageVersion()} for an example on how to
+	 * use this method.
+	 * 
+	 * @return the language version supported by the delegate doclet.
+	 */
+    protected static LanguageVersion languageVersionHelper() {
+    	return (LanguageVersion) delegateDocletInvoke("languageVersion", null);
+    }
+    
+    
     /**
      * Helper method used to implement the doclet <code>start</code> method.
      * 

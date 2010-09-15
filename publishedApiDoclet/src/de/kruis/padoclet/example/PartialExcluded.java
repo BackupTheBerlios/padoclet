@@ -1,7 +1,7 @@
 /*
  *  PublishedApiDoclet - a filter proxy for any javadoc doclet
  *  
- *  Copyright (C) 2006  Anselm Kruis <a.kruis@science-computing.de>
+ *  Copyright (C) 2006, 2010  Anselm Kruis <a.kruis@science-computing.de>
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -43,6 +43,7 @@ public class PartialExcluded {
 	 * 
 	 * Note: this function might change in a future release.
 	 */
+	@Deprecated
 	public void doNastyThings() {
 		System.out.println("shit !!!");
 	}
@@ -54,6 +55,7 @@ public class PartialExcluded {
 	 * @param arg
 	 * @pad.include sample
 	 */
+	@Annotation(string="this is a string", undocumented="another string")
 	public static HandleObject getHandle(String arg) {
 		return new HandleObject(arg);
 	}

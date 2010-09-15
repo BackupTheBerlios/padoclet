@@ -2,6 +2,10 @@
 <classpath>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry kind="var" path="JAVA_TOOLS"/>
+	<classpathentry kind="var" path="JAVA_TOOLS">
+		<attributes>
+			<attribute name="javadoc_location" value="file:/D:/Programme/Java/openjdk-6-doc/jdk/api/javadoc/doclet/"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

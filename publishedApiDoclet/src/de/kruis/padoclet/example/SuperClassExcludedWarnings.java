@@ -1,7 +1,7 @@
 /*
  *  PublishedApiDoclet - a filter proxy for any javadoc doclet
  *  
- *  Copyright (C) 2006  Anselm Kruis <a.kruis@science-computing.de>
+ *  Copyright (C) 2006, 2010  Anselm Kruis <a.kruis@science-computing.de>
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -19,6 +19,8 @@
  */
 
 package de.kruis.padoclet.example;
+
+import java.lang.annotation.Documented;
 
 /**
  * This class is used to demonstrate some warnings.
@@ -103,6 +105,8 @@ public class SuperClassExcludedWarnings {
 		/* (non-Javadoc)
 		 * @see de.kruis.padoclet.example.SuperClassExcludedWarnings.IncludedInterface#blub()
 		 */
+		@IncludedAnnotation(classes={ExcludedInterface.class, IncludedInterface.class}, 
+				classWithExcludedDefault=ExcludedInterface.class, excludedString="a string")
 		public void blub() {
 		}
 		
@@ -111,6 +115,9 @@ public class SuperClassExcludedWarnings {
 		 * 
 		 * @see SuperClassExcludedWarnings#method()
 		 */
+		@ExcludedAnnotation
+		@ExcludedDocumentedAnnotation
+		@IncludedAnnotation
 		public void method() {
 			super.method();
 			blub();
@@ -154,7 +161,7 @@ public class SuperClassExcludedWarnings {
 	}
 	
 	/**
-	 * An unddocumented exception class.
+	 * An undocumented exception class.
 	 * 
 	 * @author kruis
 	 *
@@ -167,5 +174,56 @@ public class SuperClassExcludedWarnings {
 		private static final long serialVersionUID = 3860184563604729386L;
 	}
 
+	/**
+	 * An undocumented annotation.
+	 * 
+	 * This annotation is annotated with <code>@Documented</code> 
+	 * and therefore generates a warning. 
+	 * 
+	 */
+	@Documented
+	public static @interface ExcludedDocumentedAnnotation {		
+	}
+	
+	/**
+	 * An undocumented annotation.
+	 * 
+	 * This annotation is not annotated with <code>@Documented</code>. 
+	 * That's OK. 
+	 */
+	public static @interface ExcludedAnnotation {
+	}
+	
+	/**
+	 * A documented annotation
+	 * 
+	 * @author kruis
+	 * @pad.include sample
+	 */
+	@Documented
+	public static @interface IncludedAnnotation {
+		/**
+		 * An excluded element.
+		 * 
+		 * @return
+		 * @pad.exclude sample
+		 */
+		String excludedString() default "default for excludedString";
+		
+		/**
+		 * An element whose default value is excluded.
+		 * 
+		 * @return a class
+		 */
+		Class<? extends Object> classWithExcludedDefault() default Excluded.class;
+
+		/**
+		 * An element whose default value is partially excluded.
+		 * 
+		 * @return a class
+		 */
+		Class<? extends Object>[] classes() default { Object.class, Excluded.class, IncludedClass.class };
+	}
+	
 	
 }

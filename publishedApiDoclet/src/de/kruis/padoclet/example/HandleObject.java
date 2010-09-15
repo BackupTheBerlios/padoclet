@@ -1,7 +1,7 @@
 /*
  *  PublishedApiDoclet - a filter proxy for any javadoc doclet
  *  
- *  Copyright (C) 2006  Anselm Kruis <a.kruis@science-computing.de>
+ *  Copyright (C) 2006, 2010  Anselm Kruis <a.kruis@science-computing.de>
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -32,7 +32,7 @@ public class HandleObject {
 	private String name;
 	
 	/**
-	 * Create an new instance
+	 * Create a new instance
 	 */
 	public HandleObject() {
 		this("");
